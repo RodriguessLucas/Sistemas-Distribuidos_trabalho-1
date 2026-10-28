@@ -214,16 +214,8 @@ let hoverService=null;
 let hoverAnchor=null;
 let tooltipTimer=null;
 function serviceIllustration(source){
-  const start='<svg viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">';
   if(source==='server')return '<svg viewBox="0 0 220 165" aria-hidden="true"><ellipse cx="110" cy="153" rx="76" ry="6" fill="#eff5ff"/><path d="M93 129h34l6 20H87z" fill="#a8ceff"/><rect x="75" y="147" width="70" height="7" rx="3" fill="#c8dfff"/><rect x="15" y="17" width="190" height="115" rx="8" fill="#e5f0ff"/><rect x="15" y="17" width="190" height="94" rx="7" fill="#174a9a"/><rect x="23" y="25" width="174" height="79" rx="2" fill="white"/><path d="M23 25h40v79H23z" fill="#dcecff"/><circle cx="43" cy="44" r="9" fill="#7bb0f4"/><rect x="31" y="62" width="23" height="5" rx="2" fill="#90bafa"/><rect x="31" y="73" width="23" height="4" rx="2" fill="#a7cbfa"/><rect x="31" y="83" width="17" height="4" rx="2" fill="#a7cbfa"/><rect x="73" y="33" width="112" height="10" rx="4" fill="#c8dfff"/><rect x="73" y="51" width="43" height="43" rx="4" fill="#e0edff"/><path d="m79 83 9-12 8 5 12-16" stroke="#3b82f6" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="125" y="52" width="60" height="5" rx="2" fill="#b5d4ff"/><rect x="125" y="64" width="50" height="5" rx="2" fill="#c8dfff"/><rect x="125" y="76" width="54" height="5" rx="2" fill="#c8dfff"/><rect x="125" y="88" width="35" height="5" rx="2" fill="#dceaff"/><circle cx="110" cy="121" r="4" fill="#1a56ae"/></svg>';
-  const icons={
-    'client-0':'<path d="m28 66 6-19 32-32a8 8 0 0 1 12 12L46 59z"/><path d="m34 47 12 12M28 66l18-7M60 21l13 13"/>',
-    'client-1':'<circle cx="44" cy="43" r="23"/><path d="m61 61 20 20M30 41a14 14 0 0 1 13-12"/>',
-    'client-2':'<circle cx="50" cy="50" r="29" fill="currentColor" stroke="none"/><path d="m35 50 10 11 21-24" stroke="white"/>',
-    'client-3':'<path d="M21 77V61h10v16zm23 0V48h10v29zm23 0V33h10v44z" fill="currentColor" stroke="none"/><path d="m22 45 20-18 17 8 20-20"/><circle cx="22" cy="45" r="3"/><circle cx="42" cy="27" r="3"/><circle cx="59" cy="35" r="3"/><circle cx="79" cy="15" r="3"/>',
-    'client-4':'<path d="M63 20a22 22 0 0 0-27 27L17 66a10 10 0 0 0 14 14l20-20a22 22 0 0 0 27-27L63 47 50 34z" fill="currentColor" stroke="none"/><circle cx="25" cy="73" r="3" fill="white" stroke="none"/>',
-  };
-  return start+(icons[source]||icons['client-0'])+'</svg>';
+  return '▤';
 }
 function serviceTooltipRows(source){
   const view=boardView();
