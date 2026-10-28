@@ -6,8 +6,9 @@ sobre partições do dataset Iris. A comunicação ocorre por gRPC, e o servidor
 combina os parâmetros locais com o algoritmo FedAvg.
 
 A configuração Docker executa **um servidor, cinco clientes e cinco rodadas**.
-A implementação está na branch `develop/trabalho1`; a `main` preserva o estado
-inicial do material e da análise.
+A versão integrada do trabalho está na branch `main`. A branch
+`develop/trabalho1` reúne o histórico de desenvolvimento; o material inicial
+permanece preservado no histórico Git e no arquivo `codigo.zip`.
 
 ## Sumário
 
@@ -48,7 +49,7 @@ docker info
 ### 1.2 Baixar a implementação
 
 ```bash
-git clone --branch develop/trabalho1 https://github.com/RodriguessLucas/Sistemas-Distribuidos_trabalho-1.git
+git clone --branch main https://github.com/RodriguessLucas/Sistemas-Distribuidos_trabalho-1.git
 cd Sistemas-Distribuidos_trabalho-1
 ```
 
@@ -56,7 +57,7 @@ Se o repositório já estiver na máquina, abra um terminal na raiz dele e selec
 a branch com a implementação:
 
 ```bash
-git switch develop/trabalho1
+git switch main
 git pull --ff-only
 ```
 
@@ -565,7 +566,7 @@ Depois dos testes unitários, a execução com processos reais revelou a consult
 cancelada durante o desligamento. O caso foi corrigido no cliente, coberto com
 testes adicionais e verificado em uma nova execução completa.
 
-O histórico separa o material inicial na `main`, a infraestrutura e as regras em
+O histórico preserva o material inicial no primeiro estágio, a infraestrutura e as regras em
 um commit de desenvolvimento e a implementação com sua validação no seguinte.
 Os hashes locais anteriores à publicação pelo conector foram preservados em
 tags locais de backup; o conteúdo das branches locais foi conferido com o remoto.
