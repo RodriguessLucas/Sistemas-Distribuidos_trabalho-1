@@ -1,5 +1,8 @@
 # Análise do Trabalho 1
 
+Este documento registra o diagnóstico anterior à implementação. Para o estado
+atual, a configuração Docker e as evidências de execução, consulte `README.md`.
+
 ## Objetivo e contexto
 
 O trabalho pede completar um sistema de aprendizagem federada em Python com

@@ -5,6 +5,10 @@ description: Implementar ou revisar os critérios de aceitação do Trabalho 1 d
 
 # Critérios de aceitação
 
+Regra universal: preserve todas as regras originais do código e material
+fornecido em qualquer alteração do projeto. Estes critérios complementam as
+fontes; não autorizam substituir nem flexibilizar seus requisitos.
+
 Resolva caminhos a partir da raiz que contém `trabalho-1.pdf`. Leia o enunciado,
 `codigo/start/README.md`, `codigo/start/federated.proto` e os testes correspondentes
 antes de modificar o comportamento. A tarefa é completar o kit existente.

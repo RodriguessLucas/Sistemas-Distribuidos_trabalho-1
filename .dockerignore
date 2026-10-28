@@ -1,0 +1,10 @@
+.git
+.agents
+.aws
+.codex
+**/.venv
+**/__pycache__
+**/*.pyc
+**/federated_pb2.py
+**/federated_pb2_grpc.py
+.env

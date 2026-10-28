@@ -5,6 +5,11 @@ description: Aplicar o padrão Python e a preferência de código sem comentári
 
 # Padrão de código
 
+- Regra universal: nenhuma regra original do código ou material fornecido pode
+  ser alterada, removida, enfraquecida ou contornada, inclusive por testes,
+  infraestrutura ou skills. Em conflito, registre e peça esclarecimento antes
+  de alterar a regra. Preserve o requisito mesmo ao remover uma dica didática.
+
 - Complete os pontos faltantes em `codigo/start/student_fl_client_grpc.py` e
   `codigo/start/student_fl_server_grpc.py`, preservando nomes, assinaturas, CLI,
   campos protobuf e arquitetura fornecidos.
