@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+codigo/start/federated_pb2.py
+codigo/start/federated_pb2_grpc.py

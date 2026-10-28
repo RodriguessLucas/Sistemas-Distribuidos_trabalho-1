@@ -1,0 +1,67 @@
+name: trabalho1
+
+x-runtime: &runtime
+  image: trabalho1:local
+  build: .
+  init: true
+  volumes:
+    - huggingface-cache:/cache/huggingface
+
+x-client: &client
+  <<: *runtime
+  depends_on:
+    server:
+      condition: service_healthy
+
+services:
+  dataset:
+    <<: *runtime
+    command: ["python", "-c", "from common_fl import build_federated_dataset; build_federated_dataset(5).load_split('train')"]
+
+  server:
+    <<: *runtime
+    depends_on:
+      dataset:
+        condition: service_completed_successfully
+    command: ["python", "student_fl_server_grpc.py", "--host", "0.0.0.0", "--num-clients", "5", "--rounds", "5"]
+    ports:
+      - "127.0.0.1:50051:50051"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('127.0.0.1:50051'); grpc.channel_ready_future(channel).result(timeout=2); channel.close()"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  client-0:
+    <<: *client
+    command: ["python", "student_fl_client_grpc.py", "--cid", "0", "--num-clients", "5", "--server-address", "server:50051"]
+
+  client-1:
+    <<: *client
+    command: ["python", "student_fl_client_grpc.py", "--cid", "1", "--num-clients", "5", "--server-address", "server:50051"]
+
+  client-2:
+    <<: *client
+    command: ["python", "student_fl_client_grpc.py", "--cid", "2", "--num-clients", "5", "--server-address", "server:50051"]
+
+  client-3:
+    <<: *client
+    command: ["python", "student_fl_client_grpc.py", "--cid", "3", "--num-clients", "5", "--server-address", "server:50051"]
+
+  client-4:
+    <<: *client
+    command: ["python", "student_fl_client_grpc.py", "--cid", "4", "--num-clients", "5", "--server-address", "server:50051"]
+
+  tests:
+    <<: *runtime
+    profiles: ["test"]
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]
+
+  simulation:
+    <<: *runtime
+    profiles: ["simulation"]
+    command: ["python", "../fl_sim_manual.py"]
+
+volumes:
+  huggingface-cache:
