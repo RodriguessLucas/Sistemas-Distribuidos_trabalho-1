@@ -10,6 +10,7 @@ WORKDIR /app
 COPY requirements-docker.txt .
 RUN pip install --no-cache-dir -r requirements-docker.txt
 COPY codigo /app/codigo
+COPY dashboard /app/dashboard
 WORKDIR /app/codigo/start
 RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. federated.proto
 

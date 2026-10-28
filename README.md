@@ -26,6 +26,7 @@ inicial do material e da análise.
 13. [Execução sem Docker](#capítulo-13--execução-sem-docker)
 14. [Problemas comuns e limites](#capítulo-14--problemas-comuns-e-limites)
 15. [Regras e referências](#capítulo-15--regras-e-referências)
+16. [Painel visual do serviço](#capítulo-16--painel-visual-do-serviço)
 
 ## Capítulo 1 — Como executar
 
@@ -78,8 +79,8 @@ O terceiro inicia a preparação dos dados, o servidor e os cinco clientes.
 
 Os logs aparecem no terminal. Cada rodada termina quando os cinco clientes
 entregam suas atualizações. Após a quinta rodada, o servidor encerra e os clientes
-finalizam suas consultas. Não existe uma página web para abrir no navegador:
-a saída deste projeto é apresentada no terminal.
+finalizam suas consultas. Nesse modo, a saída é apresentada no terminal. Para acompanhar pelo navegador,
+use o painel visual descrito no capítulo 16.
 
 Um trecho esperado da saída é:
 
@@ -712,3 +713,122 @@ início da implementação.
 - [Flower — What is Federated Learning?](https://flower.ai/docs/framework/tutorial-series-what-is-federated-learning.html).
 - [Flower — Quickstart scikit-learn](https://flower.ai/docs/framework/tutorial-quickstart-scikitlearn.html).
 - [Dataset Iris usado no código](https://huggingface.co/datasets/hitorilabs/iris).
+
+
+## Capítulo 16 — Painel visual do serviço
+
+### 16.1 Iniciar o frontend
+
+Na raiz do projeto, com a branch `develop/trabalho1` atualizada:
+
+```bash
+docker build -t trabalho1:local .
+docker compose --profile dashboard up --no-build -d dashboard
+```
+
+Abra **http://localhost:8088** no navegador e clique em **Iniciar execução**.
+Não é necessário iniciar separadamente os serviços `server` e `client-0` a
+`client-4` nesse modo. O monitor inicia os mesmos programas originais como seis
+processos Python independentes dentro do contêiner do painel, comunicando-se
+por gRPC em `127.0.0.1:50051`. A execução pelo Compose tradicional continua
+oferecendo um contêiner por participante.
+
+Use **Interromper** para encerrar uma execução em andamento. Depois do término,
+**Nova execução** inicia outro experimento e limpa os dados do anterior.
+**Exportar execução** baixa um JSON com métricas, eventos, logs e códigos de saída.
+Exporte antes de iniciar novamente se quiser guardar os resultados.
+
+Para desligar somente o painel:
+
+```bash
+docker compose --profile dashboard stop dashboard
+```
+
+Se a porta 8088 estiver ocupada, escolha outra porta no shell Linux/macOS:
+
+```bash
+DASHBOARD_PORT=8090 docker compose --profile dashboard up --no-build -d dashboard
+```
+
+Nesse exemplo, abra `http://localhost:8090`.
+
+### 16.2 O que é mostrado
+
+| Área | Informações |
+| --- | --- |
+| Controle do experimento | Iniciar, interromper, estado da execução e tempo decorrido |
+| Indicadores | Rodadas concluídas, última acurácia e perda globais |
+| Topologia | Servidor central, cinco clientes e última rodada aceita por cliente |
+| Ciclo da rodada | Explicação das etapas do aprendizado federado |
+| Gráficos | Acurácia e perda reais após cada consolidação |
+| Tabela de clientes | Última rodada aceita, acurácia e perda locais, código de saída |
+| Linha do tempo | Atualizações recebidas, consolidações e eventos de controle |
+| Console | Saída original dos processos, com filtro por serviço |
+
+Os valores ficam vazios até existirem resultados reais. As linhas animadas da
+rede representam a atividade geral durante a execução; não são uma captura de
+pacotes nem uma medição de tráfego. O painel não observa diretamente o instante
+exato de início do `fit`: apresenta os estados confirmados pelos logs, como
+atualização recebida ou aceita. Os números de amostras exibidos correspondem à
+configuração fixa de cinco clientes do kit.
+
+### 16.3 Como funciona a integração
+
+O frontend usa HTML, CSS e JavaScript sem bibliotecas externas, fontes remotas
+ou etapa de build. O backend HTTP usa a biblioteca padrão do Python e o runtime
+gRPC já instalado. Nenhuma nova dependência Python foi necessária.
+
+| Arquivo | Papel |
+| --- | --- |
+| `dashboard/app.py` | API, supervisão de processos, captura dos logs e estado em memória |
+| `dashboard/static/index.html` | Estrutura e conteúdo da interface |
+| `dashboard/static/style.css` | Layout responsivo, topologia e apresentação visual |
+| `dashboard/static/app.js` | Consulta periódica, gráficos SVG, filtros e exportação |
+| `dashboard/tests/test_monitor.py` | Testes de interpretação dos logs e API HTTP |
+
+O navegador consulta `GET /api/state` aproximadamente a cada 750 ms.
+`POST /api/start` inicia uma execução; outra solicitação durante uma execução
+ativa recebe HTTP 409. `POST /api/stop` solicita interrupção e encerra apenas os
+processos que pertencem ao monitor. O frontend e a API são servidos pela mesma
+origem, e POSTs com outra origem são recusados.
+
+A interpretação usa as mensagens existentes do cliente e do servidor. Não altera
+o contrato protobuf, as validações, a sincronização, a agregação ou os programas
+originais. O estado só é marcado como concluído após confirmar cinco rodadas com
+métricas e o encerramento dos seis processos com código zero.
+
+Para evitar processos órfãos em uma falha, o supervisor encerra os participantes
+que iniciou. Há limites operacionais no monitor: até 180 segundos para o servidor
+ficar disponível e cinco minutos para os participantes terminarem após o início
+dos clientes. Ao atingir um limite, o painel reporta erro e interrompe a execução;
+isso não é um timeout de rodada implementado no servidor original.
+
+### 16.4 Testes e limitações
+
+Executar os testes específicos do painel:
+
+```bash
+docker compose --profile dashboard run --rm dashboard python -m unittest discover -s /app/dashboard/tests -v
+```
+
+Os oito testes verificam reconstrução de métricas e eventos, separação dos
+clientes, tratamento de logs sem métricas, isolamento de snapshots, interrupção
+sem execução, página e API, rejeição de outra origem e caminhos estáticos restritos.
+Os 22 testes do trabalho permanecem separados e são executados pelo profile `test`.
+
+Validação realizada: oito testes do monitor aprovados, 22 testes federados
+aprovados e execução real iniciada pela API com cinco rodadas, 25 atualizações e
+seis códigos de saída zero. Também foram verificados início duplicado recusado,
+interrupção e reinício. A sintaxe e a renderização JavaScript foram verificadas
+com um DOM mínimo; não houve revisão visual em navegador real, pois nenhum
+navegador estava conectado ao ambiente.
+
+O painel guarda os dados somente em memória e conserva os últimos 1.500 logs e
+500 eventos. Reiniciar o contêiner apaga o histórico. Ele acompanha somente as
+execuções que ele próprio inicia; não se conecta aos logs de uma execução externa
+iniciada pelos demais serviços do Compose. Não é preciso fornecer acesso ao socket
+Docker ao painel.
+
+O serviço HTTP é publicado apenas na interface local e não possui login. Ele foi
+feito para demonstração local da atividade. A verificação visual em navegador
+real depende de um navegador disponível no ambiente de desenvolvimento.

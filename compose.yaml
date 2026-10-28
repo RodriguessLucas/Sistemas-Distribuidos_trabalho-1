@@ -63,5 +63,12 @@ services:
     profiles: ["simulation"]
     command: ["python", "../fl_sim_manual.py"]
 
+  dashboard:
+    <<: *runtime
+    profiles: ["dashboard"]
+    command: ["python", "/app/dashboard/app.py"]
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-8088}:8080"
+
 volumes:
   huggingface-cache:
