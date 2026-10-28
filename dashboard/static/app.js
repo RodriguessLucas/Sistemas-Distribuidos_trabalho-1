@@ -17,14 +17,14 @@ function chart(id, rounds, key, color) {
   let svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${key === 'accuracy' ? 'Acurácia' : 'Perda'} por rodada">`;
   for(let i=0;i<4;i++) {
     const v = top*i/3;
-    svg += `<line x1="${left}" x2="${right}" y1="${y(v)}" y2="${y(v)}" stroke="#233047" stroke-dasharray="3 5"/><text x="30" y="${y(v)+3}" text-anchor="end" fill="#7086a2" font-size="9">${key==='accuracy'?Math.round(v*100)+'%':v.toFixed(1)}</text>`;
+    svg += `<line x1="${left}" x2="${right}" y1="${y(v)}" y2="${y(v)}" stroke="#e8eef8" stroke-dasharray="3 5"/><text x="30" y="${y(v)+3}" text-anchor="end" fill="#7086a2" font-size="9">${key==='accuracy'?Math.round(v*100)+'%':v.toFixed(1)}</text>`;
   }
   for(let i=1;i<=5;i++)svg += `<text x="${x(i)}" y="163" text-anchor="middle" fill="#7086a2" font-size="9">R${i}</text>`;
   if(values.length) {
     const points=values.map(v=>`${x(v.round)},${y(v[key])}`);
     svg += `<defs><linearGradient id="fill-${key}" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${color}" stop-opacity=".16"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>`;
     svg += `<path d="M${x(values[0].round)},${bottom} L${points.join(' L')} L${x(values.at(-1).round)},${bottom}Z" fill="url(#fill-${key})"/><polyline points="${points.join(' ')}" stroke="${color}" stroke-width="2.2" fill="none" stroke-linejoin="round"/>`;
-    for(const v of values)svg+=`<circle cx="${x(v.round)}" cy="${y(v[key])}" r="3.5" fill="${color}" stroke="#111827" stroke-width="2"><title>Rodada ${v.round}: ${key==='accuracy'?percent(v[key]):number(v[key])}</title></circle>`;
+    for(const v of values)svg+=`<circle cx="${x(v.round)}" cy="${y(v[key])}" r="3.5" fill="${color}" stroke="#ffffff" stroke-width="2"><title>Rodada ${v.round}: ${key==='accuracy'?percent(v[key]):number(v[key])}</title></circle>`;
   }
   svg+='</svg>';
   $(id).innerHTML=svg+(values.length?'':'<div class="chart-empty">Os resultados aparecerão após a primeira rodada.</div>');
@@ -75,8 +75,8 @@ function render(data) {
     if(data.status==='error')status=c.exit_code!=null&&c.exit_code!==0?'Encerrado com erro':'Execução encerrada';
     return `<tr><td><div class="client-label"><span class="client-avatar">C${c.id}</span>Cliente ${c.id}</div></td><td><span class="pill">${status}</span></td><td class="mono">${c.round} / 5</td><td><div class="local-accuracy">${percent(c.accuracy)}<div class="tiny-bar"><i style="width:${(c.accuracy||0)*100}%"></i></div></div></td><td class="mono">${number(c.loss)}</td><td class="mono ${c.exit_code!=null&&c.exit_code!==0?'error-text':''}">${c.exit_code??'—'}</td></tr>`;
   }).join('');
-  chart('accuracy-chart',rounds,'accuracy','#50e0b0');
-  chart('loss-chart',rounds,'loss','#ad9cff');
+  chart('accuracy-chart',rounds,'accuracy','#3988f4');
+  chart('loss-chart',rounds,'loss','#a082e6');
   $('event-count').textContent=`${data.events.length} eventos`;
   $('timeline').innerHTML=data.events.length?data.events.slice(-70).reverse().map(e=>`<div class="event"><span class="event-icon">${e.source==='server'?'◈':'↗'}</span><div><p>${escapeHtml(e.message)}</p><time>${timestamp(e.time)} · ${escapeHtml(e.source)}</time></div></div>`).join(''):'<div class="empty">Sua próxima execução começa aqui.</div>';
   renderLogs();
@@ -93,7 +93,7 @@ async function poll(){
     if(!response.ok)throw new Error('Não foi possível ler a execução.');
     connectionFailed=false;
     $('connection').textContent='Painel conectado';
-    $('connection-dot').style.background='#50e0b0';
+    $('connection-dot').style.background='#3988f4';
     render(await response.json());
   }catch(error){
     connectionFailed=true;

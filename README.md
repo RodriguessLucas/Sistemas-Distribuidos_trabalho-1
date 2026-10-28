@@ -837,7 +837,8 @@ real depende de um navegador disponível no ambiente de desenvolvimento.
 
 ### 16.5 Lousa branca e logs por serviço
 
-A aba **Lousa de serviços**, ao lado de **Painel**, oferece uma segunda perspectiva
+A aba **Lousa ao vivo**, exibida inicialmente, acompanha a execução.
+A aba **Métricas e detalhes** oferece uma segunda perspectiva
 da mesma execução. Os controles de iniciar, interromper e exportar continuam
 compartilhados. Trocar de aba não inicia nem reinicia o treinamento.
 
@@ -848,15 +849,15 @@ Isso evita apresentar relações não confirmadas como se fossem tráfego captur
 
 | Serviço | Cor de identificação |
 | --- | --- |
-| Servidor | Roxo |
-| Cliente 0 | Azul |
+| Servidor | Azul |
+| Cliente 0 | Roxo |
 | Cliente 1 | Ciano |
 | Cliente 2 | Verde |
 | Cliente 3 | Âmbar |
 | Cliente 4 | Rosa |
 
 As linhas contínuas na cor do cliente apontam para o servidor e representam uma
-atualização recebida. As linhas roxas tracejadas no sentido contrário representam
+atualização recebida. As linhas azuis tracejadas no sentido contrário representam
 a confirmação de aceite. Essas relações resumem os eventos observados; não são
 captura de pacotes nem instrumentação de todas as chamadas `GetGlobalModel`.
 As mesmas cores identificam os serviços nos logs laterais e no console do painel.
@@ -865,7 +866,7 @@ Arraste os blocos para reorganizar a lousa. As conexões acompanham a posição 
 serviços. **Organizar lousa** restaura o arranjo inicial. Clique em um bloco, em
 uma cor da legenda ou no seletor para filtrar os logs. Ao selecionar um cliente,
 também aparecem as linhas do servidor que mencionam o recebimento daquele cliente,
-preservando o roxo para identificar que foram emitidas pelo servidor.
+preservando o azul para identificar que foram emitidas pelo servidor.
 **Mostrar todos** remove a seleção. O filtro não interrompe a coleta de dados.
 
 A opção **Acompanhar** mantém o console nos registros mais recentes. Desmarque-a
@@ -906,3 +907,32 @@ de processo, 25 recebimentos e 25 aceites, cinco rodadas e códigos de saída ze
 O replay foi reconstruído com esses dados reais, verificando que nenhuma conexão
 aparece antes dos serviços correspondentes. Após o teste, o painel foi reiniciado
 para ficar disponível sem uma execução ativa.
+
+
+### 16.6 Frontend com diagrama ilustrado e logs no hover
+
+O frontend foi redesenhado com fundo claro e composição inspirada na referência
+visual fornecida: um monitor representa o servidor central e cinco blocos
+ilustrados representam os clientes ao redor. A lousa é a visualização inicial.
+Os serviços ainda aparecem somente após seus eventos reais de início.
+
+Ao passar o mouse sobre um serviço, uma janela flutuante mostra seu estado, PID,
+código de saída quando disponível e até sete registros recentes emitidos por
+esse processo. O conteúdo se atualiza durante a execução. Também é possível
+abrir essa inspeção ao focar o serviço pelo teclado. A janela permite rolar os
+logs, fechar pelo botão ou usar Escape. Ao sair do serviço e da janela, ela fecha.
+No replay, o hover respeita o ponto da sequência selecionado.
+
+O **Console geral** fica em um painel separado, ao lado da lousa em telas maiores
+e abaixo dela em telas menores. Ele mantém os logs de todos os participantes,
+com cores correspondentes aos ícones e às conexões. O hover não muda o filtro
+permanente do console: o clique no serviço ou o seletor realiza essa filtragem.
+A aba de métricas, os gráficos, a tabela, os controles de execução, o replay e a
+exportação continuam disponíveis na mesma interface, com o novo visual claro.
+
+Os ícones e a ilustração central são SVGs do próprio frontend, sem dependência de
+imagens externas. O redesign não modifica o backend, o algoritmo federado ou as
+regras originais. Os testes JavaScript incluem a abertura e o fechamento da
+inspeção, a separação de logs por origem e o respeito ao replay. A conferência
+visual e das interações em navegador real continua pendente quando não houver
+navegador conectado ao ambiente de desenvolvimento.

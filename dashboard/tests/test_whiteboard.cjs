@@ -6,17 +6,20 @@ const root = path.resolve(__dirname, '..');
 const elements = new Map();
 function element(id) {
   if (!elements.has(id)) elements.set(id, {
-    style: {}, dataset: {}, classList: {toggle() {}}, listeners: {},
+    style: {setProperty(name,value) {this[name]=value;}}, dataset: {}, classList: {toggle() {}}, listeners: {},
     value: id.includes('filter') ? 'all' : '', checked: id === 'board-follow',
     scrollHeight: 0, scrollTop: 0, clientHeight: 0,
     addEventListener(name, callback) {this.listeners[name] = callback;},
     setAttribute(name, value) {this[name] = value;},
     querySelector() {return null;},
+    contains() {return false;},
+    getBoundingClientRect() {return {left:100,top:100,bottom:200,width:100,height:280};},
   });
   return elements.get(id);
 }
 const context = vm.createContext({
   document: {getElementById: element, body: {classList: {toggle() {}}}},
+  window:{innerWidth:1200,innerHeight:900}, clearTimeout() {},
   structuredClone, fetch: () => new Promise(() => {}),
   AbortSignal: {timeout: () => null}, setTimeout() {}, setInterval() {}, assert,
 });
@@ -60,6 +63,17 @@ assert.ok($('board-edges').innerHTML.includes('ack-line'));
 assert.ok($('board-nodes').innerHTML.includes('Finalizado'));
 assert.ok($('board-logs').innerHTML.includes('&lt;script&gt;'));
 assert.ok(!$('board-logs').innerHTML.includes('<script>'));
+showServiceTooltip('client-0',{left:200,top:100,bottom:200,width:100});
+assert.equal($('service-tooltip').hidden,false);
+assert.equal($('tooltip-service').textContent,'Cliente 0');
+assert.ok($('tooltip-logs').innerHTML.includes('&lt;script&gt;'));
+assert.ok(!$('tooltip-logs').innerHTML.includes('outro cliente'));
+assert.equal(serviceTooltipRows('client-0').length,1);
+assert.equal($('board-filter').value,'all');
+hideServiceTooltip();
+assert.equal($('service-tooltip').hidden,true);
+assert.ok(serviceIllustration('server').includes('viewBox="0 0 220 165"'));
+assert.equal(DEFAULT_POSITIONS.server.x,500);
 selectBoardService('client-0');
 assert.equal(boardLogRows(boardView()).length,2);
 assert.ok(!$('board-logs').innerHTML.includes('outro cliente'));
@@ -69,6 +83,10 @@ assert.equal(boardLogRows(boardView()).length,0);
 seekBoard(4);
 assert.equal(boardLogRows(boardView()).length,1);
 assert.ok(!$('board-edges').innerHTML.includes('ack-line'));
+showServiceTooltip('client-0',{left:200,top:100,bottom:200,width:100});
+assert.equal(serviceTooltipRows('client-0').length,0);
+assert.ok($('tooltip-logs').innerHTML.includes('Aguardando'));
+hideServiceTooltip();
 switchView('whiteboard');
 assert.equal($('dashboard-content').hidden,true);
 assert.equal($('whiteboard-content').hidden,false);
@@ -80,4 +98,4 @@ assert.equal(boardSelected,'all');
 assert.equal($('board-empty').hidden,false);
 `;
 new vm.Script(checks).runInContext(context);
-console.log('Lousa: sequência, vazio inicial, conexões, cores, filtros, replay, escape e troca de visão aprovados.');
+console.log('Lousa: sequência, vazio inicial, conexões, cores, filtros, replay, escape, hover de logs e troca de visão aprovados.');

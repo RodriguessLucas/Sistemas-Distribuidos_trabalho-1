@@ -1,6 +1,6 @@
-const SERVICE_COLORS = {server:'#6d4cdb','client-0':'#2563eb','client-1':'#008298','client-2':'#16834b','client-3':'#b56b06','client-4':'#ca3982',monitor:'#64748b'};
+const SERVICE_COLORS = {server:'#2563eb','client-0':'#7c3aed','client-1':'#008298','client-2':'#16834b','client-3':'#b56b06','client-4':'#ca3982',monitor:'#64748b'};
 const SERVICE_NAMES = {server:'Servidor','client-0':'Cliente 0','client-1':'Cliente 1','client-2':'Cliente 2','client-3':'Cliente 3','client-4':'Cliente 4',monitor:'Monitor'};
-const DEFAULT_POSITIONS = {server:{x:500,y:220},'client-0':{x:150,y:110},'client-1':{x:850,y:110},'client-2':{x:850,y:430},'client-3':{x:500,y:500},'client-4':{x:150,y:430}};
+const DEFAULT_POSITIONS = {server:{x:500,y:335},'client-0':{x:500,y:85},'client-1':{x:190,y:200},'client-2':{x:810,y:200},'client-3':{x:190,y:480},'client-4':{x:810,y:480}};
 let boardData = null;
 let boardRun = null;
 let boardLive = true;
@@ -57,7 +57,7 @@ function boardCurve(source, offset=0){
   const shiftX=-dy/length*offset,shiftY=dx/length*offset;
   const x1=start.x+dx/length*85+shiftX,y1=start.y+dy/length*50+shiftY;
   const x2=end.x-dx/length*95+shiftX,y2=end.y-dy/length*58+shiftY;
-  const bend=length*.12;
+  const bend=0;
   return `M ${x1} ${y1} Q ${(x1+x2)/2-dy/length*bend} ${(y1+y2)/2+dx/length*bend} ${x2} ${y2}`;
 }
 function renderBoardGraph(view){
@@ -73,14 +73,15 @@ function renderBoardGraph(view){
     if(connection.accepted)edges+=`<path class="connection-line ack-line" d="${boardCurve(connection.source,5)}" stroke="${serviceColor('server')}" marker-start="url(#arrow-server)"><title>Servidor → ${serviceName(connection.source)}: confirmação de aceite, rodada ${connection.round}</title></path>`;
     edges+='</g>';
   }
-  $('board-edges').innerHTML=edges;
-  $('board-nodes').innerHTML=Object.values(view.services).map(service=>{
+  if($('board-edges').innerHTML!==edges)$('board-edges').innerHTML=edges;
+  const nodeMarkup=Object.values(view.services).map(service=>{
     const position=boardPositions[service.source];
     if(!position)return '';
     const selected=boardSelected===service.source;
     const details=service.source==='server'?`FedAvg · ${view.round}/5 consolidações`:`${service.round}/5 rodadas aceitas`;
-    return `<button class="board-node ${service.source==='server'?'coordinator':''} ${selected?'selected':''} ${dim(service.source)?'dimmed':''}" data-service="${service.source}" style="left:${position.x/10}%;top:${position.y/6}%;--service-color:${serviceColor(service.source)}" aria-pressed="${selected}" aria-label="${serviceName(service.source)}: ${escapeHtml(service.status)}. Clique para filtrar logs; arraste para mover."><span class="node-heading"><span class="board-node-icon">${service.source==='server'?'⌘':'▤'}</span><span><strong>${serviceName(service.source)}</strong><small>PID ${service.pid}</small></span></span><span class="node-status">${escapeHtml(service.status)}${service.exitCode!==null?` · saída ${service.exitCode}`:''}</span><span class="node-detail">${details}</span>${service.accuracy!=null?`<span class="node-metrics">${percent(service.accuracy)} <span>acurácia local</span></span>`:''}</button>`;
+    return `<button class="board-node ${service.source==='server'?'coordinator':''} ${selected?'selected':''} ${dim(service.source)?'dimmed':''}" data-service="${service.source}" style="left:${position.x/10}%;top:${position.y/6}%;--service-color:${serviceColor(service.source)}" aria-pressed="${selected}" aria-label="${serviceName(service.source)}: ${escapeHtml(service.status)}. Passe o mouse para ler os logs; clique para filtrar; arraste para mover."><span class="node-heading"><span class="board-node-icon">${serviceIllustration(service.source)}</span><span><strong>${serviceName(service.source)}</strong><small>PID ${service.pid}</small></span></span><span class="node-status">${escapeHtml(service.status)}${service.exitCode!==null?` · saída ${service.exitCode}`:''}</span><span class="node-detail">${details}</span>${service.accuracy!=null?`<span class="node-metrics">${percent(service.accuracy)} <span>acurácia local</span></span>`:''}</button>`;
   }).join('');
+  if($('board-nodes').innerHTML!==nodeMarkup)$('board-nodes').innerHTML=nodeMarkup;
   $('board-empty').hidden=Object.keys(view.services).length>0;
   const count=Object.keys(view.services).length;
   $('board-summary').textContent=`${count} ${count===1?'serviço':'serviços'} · ${Object.keys(view.connections).length} conexões observadas`;
@@ -116,6 +117,7 @@ function renderWhiteboard(data){
   const view=boardView();
   renderBoardGraph(view);
   renderBoardLogs(view);
+  if(hoverService)refreshServiceTooltip();
   const length=data.events.length;
   const count=boardLive?length:Math.min(boardCursor,length);
   $('board-seek').max=String(length);
@@ -124,7 +126,7 @@ function renderWhiteboard(data){
   $('board-live').textContent=boardLive?'● Ao vivo':'◷ Replay';
   $('board-live').classList.toggle('replay',!boardLive);
   $('board-event-label').textContent=view.last?view.last.message:'Nenhum evento registrado';
-  $('board-caption').textContent=boardSelected==='all'?'Linhas na cor do cliente: atualização recebida → servidor. Linhas roxas: confirmação de aceite → cliente.':`${serviceName(boardSelected)} selecionado. As cores dos logs identificam o processo de origem.`;
+  $('board-caption').textContent=boardSelected==='all'?'Setas coloridas: atualização → servidor. Setas azuis tracejadas: confirmação → cliente. Passe o mouse nos serviços para ver os logs.':`${serviceName(boardSelected)} selecionado. As cores dos logs identificam o processo de origem.`;
   $('board-prev').disabled=count===0;
   $('board-next').disabled=count>=length;
   $('board-play').disabled=length===0;
@@ -149,7 +151,8 @@ function switchView(view){
   const isBoard=view==='whiteboard';
   $('whiteboard-content').hidden=!isBoard;
   $('dashboard-content').hidden=isBoard;
-  document.body.classList.toggle('board-mode',isBoard);
+  document.body.classList.toggle('board-mode',true);
+  hideServiceTooltip();
   for(const name of ['dashboard','whiteboard']){
     $(`view-${name}`).classList.toggle('active',name===view);
     $(`view-${name}`).setAttribute('aria-selected',String(name===view));
@@ -182,6 +185,7 @@ setInterval(()=>{
 $('board-stage').addEventListener('pointerdown',event=>{
   const node=event.target.closest('[data-service]');
   if(!node||event.button!==0)return;
+  hideServiceTooltip();
   boardDrag={source:node.dataset.service,startX:event.clientX,startY:event.clientY,moved:false};
   $('board-stage').setPointerCapture(event.pointerId);
 });
@@ -206,3 +210,76 @@ function finishBoardDrag(event){
 }
 $('board-stage').addEventListener('pointerup',finishBoardDrag);
 $('board-stage').addEventListener('pointercancel',finishBoardDrag);
+let hoverService=null;
+let hoverAnchor=null;
+let tooltipTimer=null;
+function serviceIllustration(source){
+  const start='<svg viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">';
+  if(source==='server')return '<svg viewBox="0 0 220 165" aria-hidden="true"><ellipse cx="110" cy="153" rx="76" ry="6" fill="#eff5ff"/><path d="M93 129h34l6 20H87z" fill="#a8ceff"/><rect x="75" y="147" width="70" height="7" rx="3" fill="#c8dfff"/><rect x="15" y="17" width="190" height="115" rx="8" fill="#e5f0ff"/><rect x="15" y="17" width="190" height="94" rx="7" fill="#174a9a"/><rect x="23" y="25" width="174" height="79" rx="2" fill="white"/><path d="M23 25h40v79H23z" fill="#dcecff"/><circle cx="43" cy="44" r="9" fill="#7bb0f4"/><rect x="31" y="62" width="23" height="5" rx="2" fill="#90bafa"/><rect x="31" y="73" width="23" height="4" rx="2" fill="#a7cbfa"/><rect x="31" y="83" width="17" height="4" rx="2" fill="#a7cbfa"/><rect x="73" y="33" width="112" height="10" rx="4" fill="#c8dfff"/><rect x="73" y="51" width="43" height="43" rx="4" fill="#e0edff"/><path d="m79 83 9-12 8 5 12-16" stroke="#3b82f6" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="125" y="52" width="60" height="5" rx="2" fill="#b5d4ff"/><rect x="125" y="64" width="50" height="5" rx="2" fill="#c8dfff"/><rect x="125" y="76" width="54" height="5" rx="2" fill="#c8dfff"/><rect x="125" y="88" width="35" height="5" rx="2" fill="#dceaff"/><circle cx="110" cy="121" r="4" fill="#1a56ae"/></svg>';
+  const icons={
+    'client-0':'<path d="m28 66 6-19 32-32a8 8 0 0 1 12 12L46 59z"/><path d="m34 47 12 12M28 66l18-7M60 21l13 13"/>',
+    'client-1':'<circle cx="44" cy="43" r="23"/><path d="m61 61 20 20M30 41a14 14 0 0 1 13-12"/>',
+    'client-2':'<circle cx="50" cy="50" r="29" fill="currentColor" stroke="none"/><path d="m35 50 10 11 21-24" stroke="white"/>',
+    'client-3':'<path d="M21 77V61h10v16zm23 0V48h10v29zm23 0V33h10v44z" fill="currentColor" stroke="none"/><path d="m22 45 20-18 17 8 20-20"/><circle cx="22" cy="45" r="3"/><circle cx="42" cy="27" r="3"/><circle cx="59" cy="35" r="3"/><circle cx="79" cy="15" r="3"/>',
+    'client-4':'<path d="M63 20a22 22 0 0 0-27 27L17 66a10 10 0 0 0 14 14l20-20a22 22 0 0 0 27-27L63 47 50 34z" fill="currentColor" stroke="none"/><circle cx="25" cy="73" r="3" fill="white" stroke="none"/>',
+  };
+  return start+(icons[source]||icons['client-0'])+'</svg>';
+}
+function serviceTooltipRows(source){
+  const view=boardView();
+  const cutoff=boardLive?Infinity:(view.last?.seq||0);
+  return (boardData?.logs||[]).filter(log=>log.source===source&&log.seq<=cutoff).slice(-7);
+}
+function refreshServiceTooltip(){
+  if(!hoverService||!boardData)return;
+  const service=boardView().services[hoverService];
+  if(!service){hideServiceTooltip();return;}
+  const box=$('service-tooltip');
+  box.hidden=false;
+  box.style.setProperty('--service-color',serviceColor(hoverService));
+  $('tooltip-service').textContent=serviceName(hoverService);
+  $('tooltip-summary').textContent=`${service.status} · PID ${service.pid}${service.exitCode!==null?` · saída ${service.exitCode}`:''}`;
+  const rows=serviceTooltipRows(hoverService);
+  $('tooltip-logs').innerHTML=rows.length?rows.map(log=>`<div class="hover-log"><time>${timestamp(log.time)}</time><p>${escapeHtml(log.message)}</p></div>`).join(''):'<p class="tooltip-empty">Processo iniciado. Aguardando seus primeiros logs…</p>';
+}
+function showServiceTooltip(source,rect){
+  clearTimeout(tooltipTimer);
+  hoverService=source;
+  hoverAnchor=rect;
+  refreshServiceTooltip();
+  const box=$('service-tooltip');
+  const width=Math.min(380,window.innerWidth-24);
+  box.style.width=`${width}px`;
+  const left=Math.max(12,Math.min(rect.left+rect.width/2-width/2,window.innerWidth-width-12));
+  const height=Math.min(box.getBoundingClientRect().height||300,window.innerHeight-24);
+  const below=rect.bottom+10;
+  const top=below+height<window.innerHeight-12?below:Math.max(12,rect.top-height-10);
+  box.style.left=`${left}px`;
+  box.style.top=`${top}px`;
+}
+function hideServiceTooltip(){
+  clearTimeout(tooltipTimer);
+  hoverService=null;
+  $('service-tooltip').hidden=true;
+}
+function scheduleTooltipHide(){tooltipTimer=setTimeout(hideServiceTooltip,180);}
+$('board-stage').addEventListener('pointerover',event=>{
+  const node=event.target.closest('[data-service]');
+  if(node&&!boardDrag)showServiceTooltip(node.dataset.service,node.getBoundingClientRect());
+});
+$('board-stage').addEventListener('pointerout',event=>{
+  const node=event.target.closest('[data-service]');
+  if(node&&!node.contains(event.relatedTarget)&&!$('service-tooltip').contains(event.relatedTarget))scheduleTooltipHide();
+});
+$('board-nodes').addEventListener('focusin',event=>{
+  const node=event.target.closest('[data-service]');
+  if(node)showServiceTooltip(node.dataset.service,node.getBoundingClientRect());
+});
+$('board-nodes').addEventListener('focusout',event=>{
+  if(!$('service-tooltip').contains(event.relatedTarget))scheduleTooltipHide();
+});
+$('service-tooltip').addEventListener('pointerenter',()=>clearTimeout(tooltipTimer));
+$('service-tooltip').addEventListener('pointerleave',scheduleTooltipHide);
+$('tooltip-close').addEventListener('click',hideServiceTooltip);
+$('service-tooltip').addEventListener('keydown',event=>{if(event.key==='Escape')hideServiceTooltip();});
+$('board-stage').addEventListener('keydown',event=>{if(event.key==='Escape')hideServiceTooltip();});
