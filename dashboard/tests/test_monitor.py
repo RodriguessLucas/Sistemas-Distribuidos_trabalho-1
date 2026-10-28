@@ -47,6 +47,29 @@ class TestMonitor(unittest.TestCase):
         self.assertFalse(self.monitor.stop())
         self.assertEqual(self.monitor.snapshot()['status'], 'idle')
 
+    def test_updates_include_structured_participants_and_ordered_sequences(self):
+        self.monitor.consume('server', '[Servidor] Cliente 2: atualização recebida na rodada 3')
+        self.monitor.consume('client-2', '[Cliente 2] Rodada 3 aceita | loss: 0.6562 | acc: 0.7917')
+        state = self.monitor.snapshot()
+        self.assertEqual(state['events'][0]['kind'], 'update_received')
+        self.assertEqual(state['events'][0]['cid'], 2)
+        self.assertEqual(state['events'][1]['kind'], 'update_accepted')
+        self.assertEqual(state['events'][1]['round'], 3)
+        sequence = sorted([item['seq'] for item in state['logs'] + state['events']])
+        self.assertEqual(sequence, [1, 2, 3, 4])
+
+    def test_process_lifecycle_is_recorded_before_output_and_after_exit(self):
+        process, reader = self.monitor.launch('client-0', ['-c', 'print("lifecycle-test")'])
+        process.wait(timeout=10)
+        reader.join(timeout=10)
+        state = self.monitor.snapshot()
+        self.assertEqual(state['events'][0]['kind'], 'service_started')
+        self.assertEqual(state['events'][0]['pid'], process.pid)
+        self.assertEqual(state['events'][-1]['kind'], 'service_stopped')
+        self.assertEqual(state['events'][-1]['exit_code'], 0)
+        self.assertLess(state['events'][0]['seq'], state['logs'][0]['seq'])
+        self.assertLess(state['logs'][0]['seq'], state['events'][-1]['seq'])
+
 
 class TestHttp(unittest.TestCase):
     @classmethod
@@ -78,3 +101,9 @@ class TestHttp(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as error:
             urllib.request.urlopen(self.url + '/app.py')
         self.assertEqual(error.exception.code, 404)
+
+    def test_whiteboard_assets_are_served(self):
+        for path, mime in [('/whiteboard.js', 'text/javascript'), ('/whiteboard.css', 'text/css')]:
+            with urllib.request.urlopen(self.url + path) as response:
+                self.assertIn(mime, response.headers['Content-Type'])
+                self.assertGreater(len(response.read()), 0)

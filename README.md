@@ -811,12 +811,13 @@ Executar os testes específicos do painel:
 docker compose --profile dashboard run --rm dashboard python -m unittest discover -s /app/dashboard/tests -v
 ```
 
-Os oito testes verificam reconstrução de métricas e eventos, separação dos
+Os 11 testes Python verificam reconstrução de métricas e eventos, separação dos
 clientes, tratamento de logs sem métricas, isolamento de snapshots, interrupção
-sem execução, página e API, rejeição de outra origem e caminhos estáticos restritos.
+sem execução, página e API, rejeição de outra origem e caminhos estáticos restritos. Também cobrem arquivos da lousa, ciclo de vida dos
+processos e sequência dos eventos estruturados.
 Os 22 testes do trabalho permanecem separados e são executados pelo profile `test`.
 
-Validação realizada: oito testes do monitor aprovados, 22 testes federados
+Validação realizada: 11 testes do monitor aprovados, 22 testes federados
 aprovados e execução real iniciada pela API com cinco rodadas, 25 atualizações e
 seis códigos de saída zero. Também foram verificados início duplicado recusado,
 interrupção e reinício. A sintaxe e a renderização JavaScript foram verificadas
@@ -832,3 +833,76 @@ Docker ao painel.
 O serviço HTTP é publicado apenas na interface local e não possui login. Ele foi
 feito para demonstração local da atividade. A verificação visual em navegador
 real depende de um navegador disponível no ambiente de desenvolvimento.
+
+
+### 16.5 Lousa branca e logs por serviço
+
+A aba **Lousa de serviços**, ao lado de **Painel**, oferece uma segunda perspectiva
+da mesma execução. Os controles de iniciar, interromper e exportar continuam
+compartilhados. Trocar de aba não inicia nem reinicia o treinamento.
+
+A lousa começa vazia. Um bloco aparece após o monitor iniciar o processo
+correspondente; a disponibilidade do gRPC é indicada separadamente. Os clientes
+recebem conexões visuais quando uma atualização recebida ou um aceite é observado.
+Isso evita apresentar relações não confirmadas como se fossem tráfego capturado.
+
+| Serviço | Cor de identificação |
+| --- | --- |
+| Servidor | Roxo |
+| Cliente 0 | Azul |
+| Cliente 1 | Ciano |
+| Cliente 2 | Verde |
+| Cliente 3 | Âmbar |
+| Cliente 4 | Rosa |
+
+As linhas contínuas na cor do cliente apontam para o servidor e representam uma
+atualização recebida. As linhas roxas tracejadas no sentido contrário representam
+a confirmação de aceite. Essas relações resumem os eventos observados; não são
+captura de pacotes nem instrumentação de todas as chamadas `GetGlobalModel`.
+As mesmas cores identificam os serviços nos logs laterais e no console do painel.
+
+Arraste os blocos para reorganizar a lousa. As conexões acompanham a posição dos
+serviços. **Organizar lousa** restaura o arranjo inicial. Clique em um bloco, em
+uma cor da legenda ou no seletor para filtrar os logs. Ao selecionar um cliente,
+também aparecem as linhas do servidor que mencionam o recebimento daquele cliente,
+preservando o roxo para identificar que foram emitidas pelo servidor.
+**Mostrar todos** remove a seleção. O filtro não interrompe a coleta de dados.
+
+A opção **Acompanhar** mantém o console nos registros mais recentes. Desmarque-a
+para ler logs anteriores sem que a posição de rolagem seja movida automaticamente.
+
+Na faixa inferior, use a barra de eventos, as setas ou **Replay** para reconstruir
+a lousa passo a passo, inclusive retornando ao quadro vazio. Os blocos, conexões
+e logs respeitam o ponto selecionado. **Ao vivo** volta aos eventos mais recentes.
+O replay apenas visualiza dados já coletados: não reexecuta os processos nem
+altera sua velocidade. Uma nova execução limpa a sequência anterior.
+
+O monitor acrescenta eventos estruturados de início e fim de processo,
+disponibilidade do servidor, recebimento, aceite e consolidação. Logs e eventos
+compartilham uma sequência monotônica para ordenar o replay. Como a captura de
+saída de processos distintos é concorrente, a visualização também trata o caso
+em que o aceite é lido antes da linha de recebimento, sem apagar a confirmação.
+Os eventos incluem somente informações observadas pelo supervisor e pelos logs;
+o código federado e o contrato gRPC continuam preservados.
+
+A lógica da lousa está em `dashboard/static/whiteboard.js` e o estilo em
+`dashboard/static/whiteboard.css`. O teste `dashboard/tests/test_whiteboard.cjs`
+verifica quadro inicial vazio, surgimento de serviços, conexões confirmadas,
+cores, filtros, ordem concorrente, replay, escape de texto e alternância de abas.
+Pode ser executado com Node.js disponível no host:
+
+```bash
+node dashboard/tests/test_whiteboard.cjs
+```
+
+A suíte Python do monitor passou a conter 11 testes. Os 22 testes federados
+continuam separados. A revisão visual em navegador real ainda depende de um
+navegador conectado; os testes de JavaScript usam um DOM mínimo, sem validar a
+aparência final em tela.
+
+
+A validação da lousa também usou uma execução real: seis inícios e seis términos
+de processo, 25 recebimentos e 25 aceites, cinco rodadas e códigos de saída zero.
+O replay foi reconstruído com esses dados reais, verificando que nenhuma conexão
+aparece antes dos serviços correspondentes. Após o teste, o painel foi reiniciado
+para ficar disponível sem uma execução ativa.

@@ -38,7 +38,7 @@ function renderLogs() {
   lastLogKey=key;
   const consoleBox=$('console');
   const nearBottom=consoleBox.scrollHeight-consoleBox.scrollTop-consoleBox.clientHeight<60;
-  consoleBox.textContent=rows.map(log=>`[${timestamp(log.time)}] [${log.source}] ${log.message}`).join('\n')||'Aguardando mensagens deste serviço…';
+  consoleBox.innerHTML=rows.map(log=>`<span class="service-log-line" style="--service-color:${typeof serviceColor==='function'?serviceColor(log.source):'#8fa7c3'}">[${timestamp(log.time)}] [${escapeHtml(log.source)}] ${escapeHtml(log.message)}</span>`).join('')||'Aguardando mensagens deste serviço…';
   if(nearBottom)consoleBox.scrollTop=consoleBox.scrollHeight;
 }
 function render(data) {
@@ -80,6 +80,7 @@ function render(data) {
   $('event-count').textContent=`${data.events.length} eventos`;
   $('timeline').innerHTML=data.events.length?data.events.slice(-70).reverse().map(e=>`<div class="event"><span class="event-icon">${e.source==='server'?'◈':'↗'}</span><div><p>${escapeHtml(e.message)}</p><time>${timestamp(e.time)} · ${escapeHtml(e.source)}</time></div></div>`).join(''):'<div class="empty">Sua próxima execução começa aqui.</div>';
   renderLogs();
+  if(typeof renderWhiteboard==='function')renderWhiteboard(data);
   updateDuration();
 }
 function updateDuration(){

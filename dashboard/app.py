@@ -26,6 +26,7 @@ class Monitor:
         self.reset()
 
     def reset(self):
+        self.sequence = 0
         self.state = {
             'status': 'idle', 'started_at': None, 'finished_at': None,
             'rounds': [], 'events': [], 'logs': [], 'clients': [
@@ -39,13 +40,18 @@ class Monitor:
         with self.lock:
             return copy.deepcopy(self.state)
 
-    def event(self, source, message):
-        self.state['events'].append({'time': time.time(), 'source': source, 'message': message})
+    def event(self, source, message, kind='message', **details):
+        self.sequence += 1
+        self.state['events'].append({
+            'seq': self.sequence, 'time': time.time(), 'source': source,
+            'message': message, 'kind': kind, **details,
+        })
         self.state['events'] = self.state['events'][-500:]
 
     def consume(self, source, line):
         with self.lock:
-            self.state['logs'].append({'time': time.time(), 'source': source, 'message': line})
+            self.sequence += 1
+            self.state['logs'].append({'seq': self.sequence, 'time': time.time(), 'source': source, 'message': line})
             self.state['logs'] = self.state['logs'][-1500:]
             if source == 'server':
                 received = re.search(r'Cliente (\d+): atualização recebida na rodada (\d+)', line)
@@ -54,21 +60,21 @@ class Monitor:
                 if received:
                     cid, round_number = map(int, received.groups())
                     self.state['received'].setdefault(str(round_number), []).append(cid)
-                    self.event(source, f'Cliente {cid} enviou a atualização da rodada {round_number}.')
+                    self.event(source, f'Cliente {cid} enviou a atualização da rodada {round_number}.', 'update_received', cid=cid, round=round_number)
                 if consolidated:
                     round_number, total = map(int, consolidated.groups())
                     self.state['rounds'].append({'round': round_number, 'loss': None, 'accuracy': None})
-                    self.event(source, f'Rodada {round_number}/{total} consolidada com FedAvg.')
+                    self.event(source, f'Rodada {round_number}/{total} consolidada com FedAvg.', 'round_consolidated', round=round_number)
                 if metrics and self.state['rounds']:
                     self.state['rounds'][-1].update(loss=float(metrics[1]), accuracy=float(metrics[2]))
                 if 'Servidor gRPC ouvindo' in line:
-                    self.event(source, 'Servidor gRPC disponível. Preparando os clientes.')
+                    self.event(source, 'Servidor gRPC disponível. Preparando os clientes.', 'server_ready')
             else:
                 accepted = re.search(r'\[Cliente (\d+)\] Rodada (\d+) aceita \| loss: ([\d.]+) \| acc: ([\d.]+)', line)
                 if accepted:
                     cid, round_number, loss, accuracy = accepted.groups()
                     self.state['clients'][int(cid)].update(round=int(round_number), loss=float(loss), accuracy=float(accuracy))
-                    self.event(source, f'Atualização da rodada {round_number} aceita pelo servidor.')
+                    self.event(source, f'Atualização da rodada {round_number} aceita pelo servidor.', 'update_accepted', cid=int(cid), round=int(round_number), loss=float(loss), accuracy=float(accuracy))
 
     def launch(self, source, arguments):
         with self.lock:
@@ -80,6 +86,7 @@ class Monitor:
                 text=True, bufsize=1, start_new_session=True,
             )
             self.processes.append((source, process))
+            self.event(source, 'Processo iniciado.', 'service_started', pid=process.pid)
         reader = threading.Thread(target=self.read_process, args=(source, process), daemon=True)
         reader.start()
         return process, reader
@@ -88,6 +95,9 @@ class Monitor:
         for line in process.stdout:
             self.consume(source, line.rstrip())
         process.stdout.close()
+        exit_code = process.wait()
+        with self.lock:
+            self.event(source, f'Processo encerrado com código {exit_code}.', 'service_stopped', exit_code=exit_code)
 
     def start(self):
         with self.lock:
@@ -212,7 +222,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/state':
             self.respond(200, MONITOR.snapshot())
             return
-        files = {'/': ('index.html', 'text/html; charset=utf-8'), '/app.js': ('app.js', 'text/javascript; charset=utf-8'), '/style.css': ('style.css', 'text/css; charset=utf-8')}
+        files = {'/': ('index.html', 'text/html; charset=utf-8'), '/app.js': ('app.js', 'text/javascript; charset=utf-8'), '/whiteboard.js': ('whiteboard.js', 'text/javascript; charset=utf-8'), '/whiteboard.css': ('whiteboard.css', 'text/css; charset=utf-8'), '/style.css': ('style.css', 'text/css; charset=utf-8')}
         if path not in files:
             self.respond(404, {'error': 'Recurso não encontrado.'})
             return
