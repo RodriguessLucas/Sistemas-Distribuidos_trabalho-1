@@ -108,19 +108,19 @@ Os valores numéricos acima são um exemplo observado, não uma meta de aceitaç
 
 ### 1.4 Comandos úteis depois de iniciar o Docker
 
-| Objetivo | Comando ou ação |
-| --- | --- |
-| Abrir o frontend | `http://localhost:8088` |
-| Iniciar o treinamento | Botão **Iniciar execução** |
-| Repetir o treinamento | Botão **Nova execução** |
-| Interromper apenas o treinamento | Botão **Interromper** |
-| Ver logs em tempo real | `docker compose logs -f --tail=100 dashboard` |
-| Ver logs já registrados | `docker compose logs --tail=200 dashboard` |
-| Ver logs somente do servidor no Linux/macOS | `docker compose logs -f dashboard \| rg --line-buffered '\[server\]'` |
-| Ver logs de um cliente no Linux/macOS | `docker compose logs -f dashboard \| rg --line-buffered '\[client-0\]'` |
-| Conferir o contêiner | `docker compose ps dashboard` |
-| Salvar os resultados da interface | Botão **Exportar execução** |
-| Desligar o frontend | `docker compose --profile dashboard stop dashboard` |
+| Objetivo                                    | Comando ou ação                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------ |
+| Abrir o frontend                            | `http://localhost:8088`                                                |
+| Iniciar o treinamento                       | Botão **Iniciar execução**                                      |
+| Repetir o treinamento                       | Botão **Nova execução**                                         |
+| Interromper apenas o treinamento            | Botão **Interromper**                                             |
+| Ver logs em tempo real                      | `docker compose logs -f --tail=100 dashboard`                          |
+| Ver logs já registrados                    | `docker compose logs --tail=200 dashboard`                             |
+| Ver logs somente do servidor no Linux/macOS | `docker compose logs -f dashboard \| rg --line-buffered '\[server\]'`   |
+| Ver logs de um cliente no Linux/macOS       | `docker compose logs -f dashboard \| rg --line-buffered '\[client-0\]'` |
+| Conferir o contêiner                       | `docker compose ps dashboard`                                          |
+| Salvar os resultados da interface           | Botão **Exportar execução**                                     |
+| Desligar o frontend                         | `docker compose --profile dashboard stop dashboard`                    |
 
 `Ctrl+C` no comando `logs -f` encerra apenas o acompanhamento; o serviço continua
 ativo. Os filtros com `rg` exigem ripgrep no host e são opcionais; os filtros da
@@ -185,8 +185,13 @@ quiser guardar os dados da execução.
 Para remover os contêineres e a rede, preservando o cache do Iris:
 
 ```bash
-docker compose down
+docker compose --profile '*' down
 ```
+
+O profile `dashboard` precisa ser incluído no encerramento. O curinga `'*'`
+ativa todos os profiles para o comando `down`, incluindo o painel. Sem isso, o
+painel pode continuar ativo e manter a rede ocupada com a mensagem
+`Resource is still in use`. Esse comando não remove o volume do dataset.
 
 ## Capítulo 2 — Objetivo e origem do trabalho
 
@@ -199,14 +204,14 @@ sua própria partição, enquanto o servidor coordena as rodadas e agrega os
 parâmetros. Neste kit, os exemplos de treino não são enviados nas mensagens RPC;
 os clientes enviam pesos, interceptos, quantidade de exemplos e métricas.
 
-| Recurso | Origem e finalidade |
-| --- | --- |
-| Código inicial | `codigo.zip`, disponibilizado pelo professor no SIGAA e extraído em `codigo/` |
-| Enunciado | [trabalho-1.pdf](trabalho-1.pdf) |
-| Guia de implementação | [README original do kit](codigo/start/README.md) |
-| Dados | [hitorilabs/iris no Hugging Face](https://huggingface.co/datasets/hitorilabs/iris) |
-| Referência de aula | [What is Federated Learning?](https://flower.ai/docs/framework/tutorial-series-what-is-federated-learning.html) |
-| Exemplo relacionado | [Quickstart scikit-learn do Flower](https://flower.ai/docs/framework/tutorial-quickstart-scikitlearn.html) |
+| Recurso                 | Origem e finalidade                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Código inicial         | `codigo.zip`, disponibilizado pelo professor no SIGAA e extraído em `codigo/`                             |
+| Enunciado               | [trabalho-1.pdf](trabalho-1.pdf)                                                                                |
+| Guia de implementação | [README original do kit](codigo/start/README.md)                                                                |
+| Dados                   | [hitorilabs/iris no Hugging Face](https://huggingface.co/datasets/hitorilabs/iris)                              |
+| Referência de aula     | [What is Federated Learning?](https://flower.ai/docs/framework/tutorial-series-what-is-federated-learning.html) |
+| Exemplo relacionado     | [Quickstart scikit-learn do Flower](https://flower.ai/docs/framework/tutorial-quickstart-scikitlearn.html)      |
 
 O projeto utiliza **Flower Datasets** para carregar e particionar os dados.
 A coordenação das rodadas e o transporte gRPC são implementados no próprio kit.
@@ -261,19 +266,19 @@ framework Flower completo.
             └── __init__.py
 ```
 
-| Arquivo | Responsabilidade |
-| --- | --- |
-| `fl_sim_manual.py` | Demonstra o ciclo federado de forma sequencial, dentro de um processo |
-| `common_fl.py` | Carrega dados, cria o modelo, treina, agrega e avalia |
-| `federated.proto` | Define mensagens e operações RPC compartilhadas |
-| `student_fl_client_grpc.py` | Consulta o servidor, treina localmente e envia atualizações |
-| `student_fl_server_grpc.py` | Mantém o estado global, recebe atualizações e consolida rodadas |
-| `Dockerfile` | Prepara a imagem Python e gera o código protobuf |
-| `compose.yaml` | Organiza os serviços, a rede, as dependências e o cache |
-| `requirements-docker.txt` | Fixa as versões das dependências principais do ambiente Docker |
-| `dashboard/` | Frontend, API de observação, supervisão dos participantes e testes do monitor |
-| `ANALISE.md` | Registra o diagnóstico inicial, anterior à implementação |
-| `AGENTS.md` e `skills/` | Registram as regras de implementação e os critérios de aceitação |
+| Arquivo                       | Responsabilidade                                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| `fl_sim_manual.py`          | Demonstra o ciclo federado de forma sequencial, dentro de um processo            |
+| `common_fl.py`              | Carrega dados, cria o modelo, treina, agrega e avalia                            |
+| `federated.proto`           | Define mensagens e operações RPC compartilhadas                                |
+| `student_fl_client_grpc.py` | Consulta o servidor, treina localmente e envia atualizações                    |
+| `student_fl_server_grpc.py` | Mantém o estado global, recebe atualizações e consolida rodadas               |
+| `Dockerfile`                | Prepara a imagem Python e gera o código protobuf                                |
+| `compose.yaml`              | Organiza os serviços, a rede, as dependências e o cache                        |
+| `requirements-docker.txt`   | Fixa as versões das dependências principais do ambiente Docker                 |
+| `dashboard/`                | Frontend, API de observação, supervisão dos participantes e testes do monitor |
+| `ANALISE.md`                | Registra o diagnóstico inicial, anterior à implementação                     |
+| `AGENTS.md` e `skills/`   | Registram as regras de implementação e os critérios de aceitação            |
 
 `federated_pb2.py` e `federated_pb2_grpc.py` são gerados a partir de
 `federated.proto`. Eles não são versionados; o build os cria dentro da imagem.
@@ -301,13 +306,13 @@ teste. O conjunto global de avaliação reúne os 30 exemplos de teste.
 
 `create_model_template` cria uma `LogisticRegression` com:
 
-| Parâmetro | Valor | Papel |
-| --- | --- | --- |
-| `penalty` | `l2` | Regularização do modelo |
-| `max_iter` | `1` | Mantém cada ajuste local curto |
-| `warm_start` | `True` | Permite continuar o ajuste a partir dos parâmetros recebidos |
-| `solver` | `saga` | Algoritmo de otimização escolhido no material |
-| `random_state` | `42` | Controla a aleatoriedade do otimizador |
+| Parâmetro       | Valor    | Papel                                                         |
+| ---------------- | -------- | ------------------------------------------------------------- |
+| `penalty`      | `l2`   | Regularização do modelo                                     |
+| `max_iter`     | `1`    | Mantém cada ajuste local curto                               |
+| `warm_start`   | `True` | Permite continuar o ajuste a partir dos parâmetros recebidos |
+| `solver`       | `saga` | Algoritmo de otimização escolhido no material               |
+| `random_state` | `42`   | Controla a aleatoriedade do otimizador                        |
 
 O scikit-learn precisa de um ajuste inicial para criar atributos internos, como
 `classes_`, `coef_` e `intercept_`. O kit seleciona um exemplo de cada classe para
@@ -316,18 +321,18 @@ com a mesma estrutura e parâmetros numéricos zerados.
 
 ### 4.3 Funções compartilhadas
 
-| Função de `common_fl.py` | Comportamento |
-| --- | --- |
-| `build_federated_dataset` | Configura a origem do Iris e o particionamento IID |
-| `load_seed_data` | Seleciona uma amostra por classe para inicialização |
-| `load_client_partition` | Retorna treino e teste de um cliente pelo seu ID |
-| `load_all_test_sets` | Reúne as partições de teste para avaliação global |
-| `create_model_template` | Inicializa a regressão logística e zera os parâmetros |
-| `get_model_params` | Extrai cópias de coeficientes e interceptos |
-| `set_model_params` | Aplica parâmetros recebidos a um modelo |
-| `local_train` | Copia o modelo, aplica parâmetros globais, treina e calcula métricas locais |
-| `aggregate_fedavg` | Combina os parâmetros locais por média ponderada |
-| `evaluate_global_model` | Calcula perda e acurácia do modelo agregado |
+| Função de `common_fl.py` | Comportamento                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| `build_federated_dataset`  | Configura a origem do Iris e o particionamento IID                            |
+| `load_seed_data`           | Seleciona uma amostra por classe para inicialização                         |
+| `load_client_partition`    | Retorna treino e teste de um cliente pelo seu ID                              |
+| `load_all_test_sets`       | Reúne as partições de teste para avaliação global                        |
+| `create_model_template`    | Inicializa a regressão logística e zera os parâmetros                      |
+| `get_model_params`         | Extrai cópias de coeficientes e interceptos                                  |
+| `set_model_params`         | Aplica parâmetros recebidos a um modelo                                      |
+| `local_train`              | Copia o modelo, aplica parâmetros globais, treina e calcula métricas locais |
+| `aggregate_fedavg`         | Combina os parâmetros locais por média ponderada                            |
+| `evaluate_global_model`    | Calcula perda e acurácia do modelo agregado                                  |
 
 Se uma partição de treino tiver menos de duas classes, `local_train` não executa
 `fit`; mantém os parâmetros recebidos e ainda calcula as métricas. Essa proteção
@@ -366,20 +371,20 @@ rodadas continua sendo responsabilidade do código Python e das mensagens RPC.
 
 O serviço `FederatedLearning` oferece duas RPCs unárias:
 
-| Operação | Entrada | Saída |
-| --- | --- | --- |
-| `GetGlobalModel` | `ClientHello` | `GlobalModel` |
-| `SubmitUpdate` | `ClientUpdate` | `UpdateAck` |
+| Operação         | Entrada          | Saída          |
+| ------------------ | ---------------- | --------------- |
+| `GetGlobalModel` | `ClientHello`  | `GlobalModel` |
+| `SubmitUpdate`   | `ClientUpdate` | `UpdateAck`   |
 
 ### 6.2 Mensagens
 
-| Mensagem | Campos e significado |
-| --- | --- |
-| `ClientHello` | `cid`: identificador do cliente que consulta o servidor |
+| Mensagem            | Campos e significado                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| `ClientHello`     | `cid`: identificador do cliente que consulta o servidor                                       |
 | `ModelParameters` | `coef_values`: pesos achatados; `coef_shape`: dimensões; `intercept_values`: interceptos |
-| `GlobalModel` | `round`, `total_rounds`, `done`, `message` e `model` |
-| `ClientUpdate` | `cid`, `round`, `num_examples`, `train_loss`, `train_acc` e `model` |
-| `UpdateAck` | `accepted`, `message` e `server_round` |
+| `GlobalModel`     | `round`, `total_rounds`, `done`, `message` e `model`                                  |
+| `ClientUpdate`    | `cid`, `round`, `num_examples`, `train_loss`, `train_acc` e `model`                 |
+| `UpdateAck`       | `accepted`, `message` e `server_round`                                                    |
 
 ### 6.3 Conversão dos parâmetros
 
@@ -396,12 +401,12 @@ original. A mesma representação é usada por cliente e servidor.
 
 ### 7.1 Funções implementadas
 
-| Função | Responsabilidade |
-| --- | --- |
-| `params_from_proto` | Reconstrói os arrays recebidos do servidor |
-| `params_to_proto` | Serializa os parâmetros treinados |
+| Função                | Responsabilidade                                                 |
+| ----------------------- | ---------------------------------------------------------------- |
+| `params_from_proto`   | Reconstrói os arrays recebidos do servidor                      |
+| `params_to_proto`     | Serializa os parâmetros treinados                               |
 | `build_client_update` | Monta a mensagem com identificação, rodada, modelo e métricas |
-| `run_client` | Controla consulta, espera, treinamento, envio e encerramento |
+| `run_client`          | Controla consulta, espera, treinamento, envio e encerramento     |
 
 `should_wait` já estava fornecida: retorna verdadeiro quando a rodada recebida
 é menor ou igual à última rodada concluída pelo cliente.
@@ -437,13 +442,13 @@ RPC são propagados para não esconder falhas.
 
 ### 7.4 Argumentos do cliente
 
-| Argumento | Padrão | Finalidade |
-| --- | --- | --- |
-| `--cid` | Obrigatório | ID da partição do cliente |
-| `--server-address` | `127.0.0.1:50051` | Endereço do servidor |
-| `--num-clients` | `5` | Quantidade de partições do dataset |
-| `--poll-interval` | `1.0` | Intervalo em segundos entre consultas |
-| `--local-epochs` | `1` | Número de ajustes locais em cada rodada |
+| Argumento            | Padrão             | Finalidade                               |
+| -------------------- | ------------------- | ---------------------------------------- |
+| `--cid`            | Obrigatório        | ID da partição do cliente              |
+| `--server-address` | `127.0.0.1:50051` | Endereço do servidor                    |
+| `--num-clients`    | `5`               | Quantidade de partições do dataset     |
+| `--poll-interval`  | `1.0`             | Intervalo em segundos entre consultas    |
+| `--local-epochs`   | `1`               | Número de ajustes locais em cada rodada |
 
 ## Capítulo 8 — Funcionamento do servidor
 
@@ -451,17 +456,17 @@ RPC são propagados para não esconder falhas.
 
 `FederatedLearningServicer` mantém:
 
-| Atributo | Papel |
-| --- | --- |
-| `num_clients` | Número de contribuições esperadas por rodada |
-| `total_rounds` | Número de rodadas configuradas |
-| `current_round` | Rodada que recebe atualizações, iniciada em 1 |
-| `global_params` | Parâmetros do modelo global atual |
-| `model_template` | Estrutura do modelo usada na avaliação |
-| `received_updates` | Atualizações da rodada, indexadas pelo ID do cliente |
-| `lock` | Exclusão mútua para consultar e modificar o estado |
-| `training_finished` | Evento que libera o encerramento do servidor |
-| `X_test_global`, `y_test_global` | Conjunto de avaliação reunido pelo kit |
+| Atributo                             | Papel                                                  |
+| ------------------------------------ | ------------------------------------------------------ |
+| `num_clients`                      | Número de contribuições esperadas por rodada        |
+| `total_rounds`                     | Número de rodadas configuradas                        |
+| `current_round`                    | Rodada que recebe atualizações, iniciada em 1        |
+| `global_params`                    | Parâmetros do modelo global atual                     |
+| `model_template`                   | Estrutura do modelo usada na avaliação               |
+| `received_updates`                 | Atualizações da rodada, indexadas pelo ID do cliente |
+| `lock`                             | Exclusão mútua para consultar e modificar o estado   |
+| `training_finished`                | Evento que libera o encerramento do servidor           |
+| `X_test_global`, `y_test_global` | Conjunto de avaliação reunido pelo kit               |
 
 ### 8.2 Consulta do modelo
 
@@ -506,12 +511,12 @@ pois ele não é reentrante.
 A função `serve` aguarda `training_finished`, solicita `server.stop(grace=2)`
 e espera o desligamento. Essa estrutura já estava fornecida no material.
 
-| Argumento do servidor | Padrão | Finalidade |
-| --- | --- | --- |
-| `--host` | `127.0.0.1` | Interface de escuta |
-| `--port` | `50051` | Porta gRPC |
-| `--num-clients` | `5` | Clientes esperados por rodada |
-| `--rounds` | `5` | Quantidade total de rodadas |
+| Argumento do servidor | Padrão       | Finalidade                    |
+| --------------------- | ------------- | ----------------------------- |
+| `--host`            | `127.0.0.1` | Interface de escuta           |
+| `--port`            | `50051`     | Porta gRPC                    |
+| `--num-clients`     | `5`         | Clientes esperados por rodada |
+| `--rounds`          | `5`         | Quantidade total de rodadas   |
 
 ## Capítulo 9 — Agregação e avaliação
 
@@ -531,11 +536,11 @@ Com as cinco partições iguais da configuração padrão, os pesos são iguais.
 
 ### 9.2 Métricas
 
-| Métrica | Interpretação |
-| --- | --- |
-| `train_loss` | Perda logarítmica calculada nos dados locais de treino |
-| `train_acc` | Proporção de acertos nos dados locais de treino |
-| Loss global | Perda do modelo agregado sobre os testes reunidos |
+| Métrica         | Interpretação                                               |
+| ---------------- | ------------------------------------------------------------- |
+| `train_loss`   | Perda logarítmica calculada nos dados locais de treino       |
+| `train_acc`    | Proporção de acertos nos dados locais de treino             |
+| Loss global      | Perda do modelo agregado sobre os testes reunidos             |
 | Acurácia global | Proporção de acertos do modelo agregado nos testes reunidos |
 
 Os parâmetros do FedAvg são ponderados pelo número de exemplos. As médias de
@@ -584,25 +589,25 @@ protobuf em `/app/codigo/start`. As dependências principais têm versões fixad
 as transitivas continuam sendo resolvidas pelo pip. A imagem base usa uma tag,
 sem fixação por digest, portanto o ambiente não é integralmente imutável.
 
-| Biblioteca | Uso |
-| --- | --- |
-| `grpcio` | Comunicação RPC em tempo de execução |
-| `grpcio-tools` | Geração de código Python a partir do `.proto` |
-| `flwr-datasets` | Download e particionamento do dataset |
-| `scikit-learn` | Regressão logística e métricas |
-| `numpy` | Arrays, conversões e agregação |
-| `pandas` | Manipulação tabular das partições |
+| Biblioteca        | Uso                                                |
+| ----------------- | -------------------------------------------------- |
+| `grpcio`        | Comunicação RPC em tempo de execução           |
+| `grpcio-tools`  | Geração de código Python a partir do `.proto` |
+| `flwr-datasets` | Download e particionamento do dataset              |
+| `scikit-learn`  | Regressão logística e métricas                  |
+| `numpy`         | Arrays, conversões e agregação                  |
+| `pandas`        | Manipulação tabular das partições              |
 
 ### 11.2 Serviços do Compose
 
-| Serviço | Papel e condição de execução |
-| --- | --- |
-| `dataset` | Prepara o Iris e encerra com sucesso antes de iniciar o servidor |
-| `server` | Aguarda os dados e expõe o serviço gRPC |
-| `client-0` a `client-4` | Aguardam o healthcheck do servidor e usam IDs distintos |
-| `tests` | Executa a suíte quando solicitado com o profile `test` |
-| `simulation` | Executa o programa sequencial com o profile `simulation` |
-| `dashboard` | Serve o frontend e inicia os participantes pelo botão, com o profile `dashboard` |
+| Serviço                    | Papel e condição de execução                                                    |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `dataset`                 | Prepara o Iris e encerra com sucesso antes de iniciar o servidor                    |
+| `server`                  | Aguarda os dados e expõe o serviço gRPC                                           |
+| `client-0` a `client-4` | Aguardam o healthcheck do servidor e usam IDs distintos                             |
+| `tests`                   | Executa a suíte quando solicitado com o profile `test`                           |
+| `simulation`              | Executa o programa sequencial com o profile `simulation`                          |
+| `dashboard`               | Serve o frontend e inicia os participantes pelo botão, com o profile `dashboard` |
 
 O healthcheck confirma que o canal gRPC consegue se conectar. Ele não verifica
 acurácia nem conclusão das rodadas. Os clientes acessam `server:50051` pela rede
@@ -643,15 +648,15 @@ Os clientes recebem o total de rodadas nas respostas RPC.
 
 ### 12.1 Cobertura da suíte
 
-| Arquivo | Testes | Comportamento verificado |
-| --- | --- | --- |
-| `test_01_client_serialization.py` | 3 | Conversões e construção de `ClientUpdate` |
-| `test_02_client_loop.py` | 2 | Espera por rodada e processamento de uma rodada |
-| `test_03_server_serialization_and_get.py` | 4 | Conversões, resposta global e indicador de fim |
-| `test_04_server_validation.py` | 4 | Aceite e recusas por término, rodada ou duplicação |
-| `test_05_server_submit_and_consolidate.py` | 2 | Armazenamento, consolidação e recusa |
-| `test_06_client_round_control.py` | 7 | Polling, recusa, indisponibilidade, cancelamento e propagação de erros |
-| **Total** | **22** | **15 originais e 7 adicionais** |
+| Arquivo                                      | Testes       | Comportamento verificado                                                 |
+| -------------------------------------------- | ------------ | ------------------------------------------------------------------------ |
+| `test_01_client_serialization.py`          | 3            | Conversões e construção de `ClientUpdate`                           |
+| `test_02_client_loop.py`                   | 2            | Espera por rodada e processamento de uma rodada                          |
+| `test_03_server_serialization_and_get.py`  | 4            | Conversões, resposta global e indicador de fim                          |
+| `test_04_server_validation.py`             | 4            | Aceite e recusas por término, rodada ou duplicação                    |
+| `test_05_server_submit_and_consolidate.py` | 2            | Armazenamento, consolidação e recusa                                   |
+| `test_06_client_round_control.py`          | 7            | Polling, recusa, indisponibilidade, cancelamento e propagação de erros |
+| **Total**                              | **22** | **15 originais e 7 adicionais**                                    |
 
 Executar a suíte no Docker:
 
@@ -671,15 +676,15 @@ executado o cenário distribuído completo.
 
 ### 12.2 Validação realizada em 28/10/2026
 
-| Verificação | Resultado observado |
-| --- | --- |
-| Build da imagem | Concluído, incluindo geração protobuf |
-| Suíte unitária | 22 testes aprovados |
-| Download do Iris | Concluído |
-| Execução distribuída | Cinco clientes e cinco rodadas consolidadas |
-| Código de saída | 0 para preparação, servidor e todos os clientes |
-| Loss global final | 0,4877 |
-| Acurácia global final | 0,9333, aproximadamente 93,33% |
+| Verificação           | Resultado observado                               |
+| ----------------------- | ------------------------------------------------- |
+| Build da imagem         | Concluído, incluindo geração protobuf          |
+| Suíte unitária        | 22 testes aprovados                               |
+| Download do Iris        | Concluído                                        |
+| Execução distribuída | Cinco clientes e cinco rodadas consolidadas       |
+| Código de saída       | 0 para preparação, servidor e todos os clientes |
+| Loss global final       | 0,4877                                            |
+| Acurácia global final  | 0,9333, aproximadamente 93,33%                    |
 
 As métricas são o resultado daquela execução, não uma garantia para qualquer
 versão de biblioteca ou configuração. O enunciado não define uma meta numérica.
@@ -731,18 +736,18 @@ execução real validada ocorreu nos contêineres.
 
 ### 14.1 Diagnóstico de execução
 
-| Sintoma | O que conferir |
-| --- | --- |
-| Permissão negada no Docker | Acesso do usuário ao daemon; `docker info` deve funcionar |
+| Sintoma                                   | O que conferir                                                                                                                  |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Permissão negada no Docker               | Acesso do usuário ao daemon; `docker info` deve funcionar                                                                    |
 | `docker compose build` falha com Buildx | Instalação do plugin Buildx; no ambiente inicial `docker build -t trabalho1:local .` usou o builder legado como alternativa |
-| Imagem `trabalho1:local` ausente | Execute o build antes de usar `--no-build` |
-| Rodada não avança | Todos os clientes precisam executar com IDs distintos e o mesmo `--num-clients` |
-| Porta 50051 ocupada | Verifique outro servidor no host ou ajuste o mapeamento de porta do Compose |
-| Imports de `federated_pb2` falham | Gere os arquivos do `.proto` no diretório correto |
-| Alteração local não aparece | Reconstrua a imagem; não há bind mount de código |
-| Download demora ou falha | Acesso ao Hugging Face e disponibilidade do cache |
-| Cliente informa indisponibilidade | Verifique se o servidor consolidou as rodadas e encerrou, ou se falhou antes |
-| Aviso de dataset não testado pelo Flower | O ID `hitorilabs/iris` é o original do trabalho e funcionou na execução validada; não foi substituído |
+| Imagem `trabalho1:local` ausente        | Execute o build antes de usar `--no-build`                                                                                    |
+| Rodada não avança                       | Todos os clientes precisam executar com IDs distintos e o mesmo `--num-clients`                                               |
+| Porta 50051 ocupada                       | Verifique outro servidor no host ou ajuste o mapeamento de porta do Compose                                                     |
+| Imports de `federated_pb2` falham       | Gere os arquivos do `.proto` no diretório correto                                                                            |
+| Alteração local não aparece            | Reconstrua a imagem; não há bind mount de código                                                                             |
+| Download demora ou falha                  | Acesso ao Hugging Face e disponibilidade do cache                                                                               |
+| Cliente informa indisponibilidade         | Verifique se o servidor consolidou as rodadas e encerrou, ou se falhou antes                                                    |
+| Aviso de dataset não testado pelo Flower | O ID `hitorilabs/iris` é o original do trabalho e funcionou na execução validada; não foi substituído                    |
 
 Não use `--abort-on-container-exit` para esse Compose: o serviço `dataset`
 encerra normalmente antes de o treinamento começar. Os participantes também
@@ -792,7 +797,6 @@ início da implementação.
 - [Flower — Quickstart scikit-learn](https://flower.ai/docs/framework/tutorial-quickstart-scikitlearn.html).
 - [Dataset Iris usado no código](https://huggingface.co/datasets/hitorilabs/iris).
 
-
 ## Capítulo 16 — Painel visual do serviço
 
 ### 16.1 Visão geral e modos de operação
@@ -801,10 +805,10 @@ O frontend é uma interface local para iniciar e observar o treinamento real.
 O endereço padrão é **http://localhost:8088**. O capítulo 1 contém os comandos
 de inicialização e acompanhamento simultâneo pelo terminal.
 
-| Modo | Onde estão os participantes | Como acompanhar |
-| --- | --- | --- |
-| Frontend | Seis processos Python independentes dentro do contêiner `dashboard` | Navegador e `docker compose logs -f dashboard` |
-| Compose distribuído | Um contêiner de servidor e cinco de clientes | `docker compose logs -f server client-0 client-1 client-2 client-3 client-4` |
+| Modo                 | Onde estão os participantes                                           | Como acompanhar                                                                |
+| -------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Frontend             | Seis processos Python independentes dentro do contêiner `dashboard` | Navegador e `docker compose logs -f dashboard`                               |
+| Compose distribuído | Um contêiner de servidor e cinco de clientes                          | `docker compose logs -f server client-0 client-1 client-2 client-3 client-4` |
 
 Nos dois modos, o servidor e os clientes executam os mesmos programas originais
 e se comunicam por gRPC. A diferença está na organização dos processos e na
@@ -820,14 +824,14 @@ O servidor aparece no centro como um monitor; os cinco clientes aparecem ao redo
 com o mesmo ícone `▤` utilizado na aba de métricas. As cores individuais permitem
 reconhecer o mesmo participante no diagrama e no console.
 
-| Serviço | Cor |
-| --- | --- |
-| Servidor | Azul |
-| Cliente 0 | Roxo |
-| Cliente 1 | Ciano |
-| Cliente 2 | Verde |
+| Serviço  | Cor    |
+| --------- | ------ |
+| Servidor  | Azul   |
+| Cliente 0 | Roxo   |
+| Cliente 1 | Ciano  |
+| Cliente 2 | Verde  |
 | Cliente 3 | Âmbar |
-| Cliente 4 | Rosa |
+| Cliente 4 | Rosa   |
 
 A aba inicial é **Lousa ao vivo**. A aba **Métricas e detalhes** reúne indicadores,
 gráficos de acurácia e perda, tabela dos clientes, ciclo do aprendizado e eventos.
@@ -899,26 +903,26 @@ uma função de reimportação ou armazenamento persistente.
 
 ### 16.6 Backend, API e sequência dos eventos
 
-| Arquivo | Responsabilidade |
-| --- | --- |
-| `dashboard/app.py` | Servidor HTTP, API, supervisor de processos, estado e logs |
-| `dashboard/static/index.html` | Estrutura da interface e abas |
-| `dashboard/static/style.css` | Tema e componentes gerais |
-| `dashboard/static/app.js` | Polling, controles, métricas e exportação |
-| `dashboard/static/whiteboard.js` | Reconstrução da lousa, conexões, hover, seleção, arraste e replay |
-| `dashboard/static/whiteboard.css` | Diagrama, console lateral, inspeção e layout responsivo |
-| `dashboard/tests/test_monitor.py` | Testes Python da API e do monitor |
-| `dashboard/tests/test_whiteboard.cjs` | Testes JavaScript com DOM mínimo |
+| Arquivo                                 | Responsabilidade                                                       |
+| --------------------------------------- | ---------------------------------------------------------------------- |
+| `dashboard/app.py`                    | Servidor HTTP, API, supervisor de processos, estado e logs             |
+| `dashboard/static/index.html`         | Estrutura da interface e abas                                          |
+| `dashboard/static/style.css`          | Tema e componentes gerais                                              |
+| `dashboard/static/app.js`             | Polling, controles, métricas e exportação                           |
+| `dashboard/static/whiteboard.js`      | Reconstrução da lousa, conexões, hover, seleção, arraste e replay |
+| `dashboard/static/whiteboard.css`     | Diagrama, console lateral, inspeção e layout responsivo              |
+| `dashboard/tests/test_monitor.py`     | Testes Python da API e do monitor                                      |
+| `dashboard/tests/test_whiteboard.cjs` | Testes JavaScript com DOM mínimo                                      |
 
 A interface usa HTML, CSS e JavaScript sem bibliotecas externas ou build de
 frontend. O monitor usa a biblioteca padrão Python e o runtime gRPC já disponível.
 Não foram adicionadas dependências Python para essa camada.
 
-| Endpoint | Comportamento |
-| --- | --- |
-| `GET /api/state` | Snapshot da execução, consultado aproximadamente a cada 750 ms |
+| Endpoint            | Comportamento                                                     |
+| ------------------- | ----------------------------------------------------------------- |
+| `GET /api/state`  | Snapshot da execução, consultado aproximadamente a cada 750 ms  |
 | `POST /api/start` | Inicia o experimento; responde 409 se já houver execução ativa |
-| `POST /api/stop` | Solicita interrupção dos processos iniciados pelo monitor |
+| `POST /api/stop`  | Solicita interrupção dos processos iniciados pelo monitor       |
 
 `Monitor.launch` inicia o programa original e registra `service_started`.
 Uma thread por processo lê a saída combinada de stdout e stderr.
@@ -989,7 +993,6 @@ manteve os mesmos resultados disponíveis no frontend. Os 12 testes do monitor
 passaram, incluindo a preservação da mensagem original no JSON e sua cópia
 identificada no stdout. O cenário terminou com loss 0,4877 e acurácia 0,9333.
 
-
 ```bash
 docker compose --profile dashboard run --rm dashboard python -m unittest discover -s /app/dashboard/tests -v
 ```
@@ -1011,30 +1014,30 @@ concorrente, filtros, replay, escape de texto, inspeção no hover e troca de ab
 Usam um DOM mínimo e não comprovam a aparência final ou as interações em navegador
 real. O ambiente usado não possui navegador conectado para essa revisão.
 
-| Sintoma | Diagnóstico |
-| --- | --- |
-| Apenas a mensagem de painel disponível no terminal | O contêiner iniciou, mas o experimento ainda não; clique em **Iniciar execução** |
-| Logs da interface não aparecem no terminal | Use `logs -f dashboard` no modo frontend e reconstrua a imagem se estiver usando versão antiga |
-| Logs antigos reaparecem no terminal | O Docker guarda as execuções do mesmo contêiner; use `--since=1m` ou `--tail=100` para reduzir a saída |
-| A página cresce com os logs | Confirme que está usando a versão atualizada com console de altura limitada; recarregue sem cache |
-| Serviços não aparecem imediatamente | O primeiro download e a inicialização podem demorar; acompanhe a API, o estado e o terminal |
-| `dashboard` continua ativo após cinco rodadas | Comportamento esperado: a interface fica disponível para resultados e nova execução |
-| Métricas locais diferem da global | São modelos e conjuntos de avaliação diferentes; consulte o capítulo 9 |
+| Sintoma                                             | Diagnóstico                                                                                                   |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Apenas a mensagem de painel disponível no terminal | O contêiner iniciou, mas o experimento ainda não; clique em **Iniciar execução**                     |
+| Logs da interface não aparecem no terminal         | Use `logs -f dashboard` no modo frontend e reconstrua a imagem se estiver usando versão antiga              |
+| Logs antigos reaparecem no terminal                 | O Docker guarda as execuções do mesmo contêiner; use `--since=1m` ou `--tail=100` para reduzir a saída |
+| A página cresce com os logs                        | Confirme que está usando a versão atualizada com console de altura limitada; recarregue sem cache            |
+| Serviços não aparecem imediatamente               | O primeiro download e a inicialização podem demorar; acompanhe a API, o estado e o terminal                  |
+| `dashboard` continua ativo após cinco rodadas    | Comportamento esperado: a interface fica disponível para resultados e nova execução                         |
+| Métricas locais diferem da global                  | São modelos e conjuntos de avaliação diferentes; consulte o capítulo 9                                     |
 
 ## Capítulo 17 — Roteiro de estudo e apresentação
 
 ### 17.1 Leitura sugerida
 
-| Ordem | Ler ou executar | O que entender |
-| --- | --- | --- |
-| 1 | Capítulos 2, 4 e 5 | Por que distribuir o treino e como uma rodada funciona |
-| 2 | `codigo/fl_sim_manual.py` | Treino local, FedAvg e avaliação sem rede |
-| 3 | Capítulo 6 e `federated.proto` | Mensagens, RPCs e o que realmente atravessa a rede |
-| 4 | Capítulo 7 e o cliente | Consulta, espera, treino, envio e confirmação |
-| 5 | Capítulo 8 e o servidor | Lock, buffer, validação, barreira e avanço da rodada |
-| 6 | Capítulo 9 e `common_fl.py` | Ponderação dos parâmetros e interpretação das métricas |
-| 7 | Capítulos 1 e 16, com o sistema rodando | Relacionar código, logs, topologia e resultados |
-| 8 | Capítulos 12 e 14 | Evidências de correção e limites do protótipo |
+| Ordem | Ler ou executar                          | O que entender                                               |
+| ----- | ---------------------------------------- | ------------------------------------------------------------ |
+| 1     | Capítulos 2, 4 e 5                      | Por que distribuir o treino e como uma rodada funciona       |
+| 2     | `codigo/fl_sim_manual.py`              | Treino local, FedAvg e avaliação sem rede                  |
+| 3     | Capítulo 6 e `federated.proto`        | Mensagens, RPCs e o que realmente atravessa a rede           |
+| 4     | Capítulo 7 e o cliente                  | Consulta, espera, treino, envio e confirmação              |
+| 5     | Capítulo 8 e o servidor                 | Lock, buffer, validação, barreira e avanço da rodada      |
+| 6     | Capítulo 9 e `common_fl.py`           | Ponderação dos parâmetros e interpretação das métricas |
+| 7     | Capítulos 1 e 16, com o sistema rodando | Relacionar código, logs, topologia e resultados             |
+| 8     | Capítulos 12 e 14                       | Evidências de correção e limites do protótipo            |
 
 ### 17.2 Demonstração prática
 
