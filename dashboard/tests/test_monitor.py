@@ -1,4 +1,6 @@
 import importlib.util
+import contextlib
+import io
 import json
 import threading
 import unittest
@@ -46,6 +48,14 @@ class TestMonitor(unittest.TestCase):
     def test_stop_without_run_is_noop(self):
         self.assertFalse(self.monitor.stop())
         self.assertEqual(self.monitor.snapshot()['status'], 'idle')
+
+    def test_service_output_is_mirrored_to_terminal_and_kept_for_frontend(self):
+        output = io.StringIO()
+        line = '[Servidor] Rodada 1/5 consolidada'
+        with contextlib.redirect_stdout(output):
+            self.monitor.consume('server', line)
+        self.assertEqual(output.getvalue(), f'[server] {line}\n')
+        self.assertEqual(self.monitor.snapshot()['logs'][0]['message'], line)
 
     def test_updates_include_structured_participants_and_ordered_sequences(self):
         self.monitor.consume('server', '[Servidor] Cliente 2: atualização recebida na rodada 3')

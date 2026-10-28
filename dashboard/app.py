@@ -47,8 +47,11 @@ class Monitor:
             'message': message, 'kind': kind, **details,
         })
         self.state['events'] = self.state['events'][-500:]
+        if source == 'monitor' or kind in ('service_started', 'service_stopped'):
+            print(f'[{source}] {message}', flush=True)
 
     def consume(self, source, line):
+        print(f'[{source}] {line}', flush=True)
         with self.lock:
             self.sequence += 1
             self.state['logs'].append({'seq': self.sequence, 'time': time.time(), 'source': source, 'message': line})

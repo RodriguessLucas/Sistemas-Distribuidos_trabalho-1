@@ -27,6 +27,7 @@ inicial do material e da análise.
 14. [Problemas comuns e limites](#capítulo-14--problemas-comuns-e-limites)
 15. [Regras e referências](#capítulo-15--regras-e-referências)
 16. [Painel visual do serviço](#capítulo-16--painel-visual-do-serviço)
+17. [Roteiro de estudo e apresentação](#capítulo-17--roteiro-de-estudo-e-apresentação)
 
 ## Capítulo 1 — Como executar
 
@@ -63,66 +64,128 @@ A raiz é a pasta que contém `Dockerfile`, `compose.yaml` e este README.
 No workspace usado no desenvolvimento, basta abrir o terminal nessa pasta;
 não é necessário clonar novamente.
 
-### 1.3 Construir, testar e executar
+### 1.3 Iniciar pelo frontend e acompanhar no terminal
 
-Execute na raiz:
+Na raiz do repositório, construa a imagem e inicie somente o painel:
 
 ```bash
 docker build -t trabalho1:local .
-docker compose --profile test run --rm tests
-docker compose up --no-build
+docker compose --profile dashboard up --no-build -d dashboard
 ```
 
-O primeiro comando constrói a imagem, instala as dependências e gera os arquivos
-Python do protobuf. O segundo executa os testes e remove o contêiner de teste.
-O terceiro inicia a preparação dos dados, o servidor e os cinco clientes.
+Abra **http://localhost:8088**. A lousa começa vazia. Antes de clicar em
+**Iniciar execução**, abra outro terminal na mesma pasta e execute:
 
-Os logs aparecem no terminal. Cada rodada termina quando os cinco clientes
-entregam suas atualizações. Após a quinta rodada, o servidor encerra e os clientes
-finalizam suas consultas. Nesse modo, a saída é apresentada no terminal. Para acompanhar pelo navegador,
-use o painel visual descrito no capítulo 16.
+```bash
+docker compose logs --follow --tail=100 dashboard
+```
 
-Um trecho esperado da saída é:
+Agora clique em **Iniciar execução** no navegador. O frontend inicia o servidor
+e cinco clientes reais. A lousa mostra os serviços surgindo, as conexões, o
+progresso e os logs. O terminal acompanha as mesmas mensagens dos processos,
+identificadas por `[server]` e `[client-0]` até `[client-4]`.
+
+Iniciar o contêiner disponibiliza o painel, mas não dispara treinamento
+automaticamente. O botão inicia o experimento. Não é necessário iniciar os
+outros serviços do Compose nesse modo.
+
+Após cinco rodadas, os seis processos federados terminam. O contêiner
+`dashboard` permanece ativo para mostrar os resultados e permitir uma nova
+execução. Confira o estado **Execução concluída**, cinco consolidações e códigos
+de saída zero dos participantes. No terminal, a saída inclui mensagens como:
 
 ```text
-[Servidor] Rodada 5/5 consolidada
-  Treino médio local - loss: ... | acc: ...
-  Modelo global - loss: ... | acc: ...
-[Servidor] Todas as rodadas foram concluídas. Encerrando servidor gRPC...
-[Servidor] Servidor encerrado com sucesso.
+[server] [Servidor] Rodada 5/5 consolidada
+[server]   Modelo global - loss: 0.4877 | acc: 0.9333
+[server] [Servidor] Servidor encerrado com sucesso.
+[client-0] Processo encerrado com código 0.
+[monitor] Cinco rodadas concluídas. Servidor e clientes encerraram com código 0.
 ```
 
-Depois que os serviços terminarem, confira:
+A ordem das mensagens pode variar porque os processos executam concorrentemente.
+Os valores numéricos acima são um exemplo observado, não uma meta de aceitação.
+
+### 1.4 Comandos úteis depois de iniciar o Docker
+
+| Objetivo | Comando ou ação |
+| --- | --- |
+| Abrir o frontend | `http://localhost:8088` |
+| Iniciar o treinamento | Botão **Iniciar execução** |
+| Repetir o treinamento | Botão **Nova execução** |
+| Interromper apenas o treinamento | Botão **Interromper** |
+| Ver logs em tempo real | `docker compose logs -f --tail=100 dashboard` |
+| Ver logs já registrados | `docker compose logs --tail=200 dashboard` |
+| Ver logs somente do servidor no Linux/macOS | `docker compose logs -f dashboard \| rg --line-buffered '\[server\]'` |
+| Ver logs de um cliente no Linux/macOS | `docker compose logs -f dashboard \| rg --line-buffered '\[client-0\]'` |
+| Conferir o contêiner | `docker compose ps dashboard` |
+| Salvar os resultados da interface | Botão **Exportar execução** |
+| Desligar o frontend | `docker compose --profile dashboard stop dashboard` |
+
+`Ctrl+C` no comando `logs -f` encerra apenas o acompanhamento; o serviço continua
+ativo. Os filtros com `rg` exigem ripgrep no host e são opcionais; os filtros da
+interface não dependem dele. Para salvar o log completo em arquivo:
+
+```bash
+docker compose logs --no-color dashboard > execucao-dashboard.log
+```
+
+O log do Docker acumula as execuções enquanto o mesmo contêiner existir. O JSON
+do frontend representa somente a execução atual. Exportar o JSON é diferente
+de salvar o log textual do Docker.
+
+### 1.5 Executar com um contêiner por participante
+
+Como alternativa ao frontend, execute o cenário distribuído do Compose:
+
+```bash
+docker compose up --no-build dataset server client-0 client-1 client-2 client-3 client-4
+```
+
+Os logs aparecem diretamente no terminal. Cada rodada só termina após as cinco
+contribuições. Após a quinta rodada, servidor e clientes encerram. Confira:
 
 ```bash
 docker compose ps -a
 ```
 
-O resultado esperado é `Exited (0)` para `dataset`, `server` e `client-0` até
-`client-4`. Uma mensagem isolada de indisponibilidade em um cliente não basta
-para confirmar sucesso: confira também as cinco consolidações do servidor.
+Nesse modo, o resultado esperado é `Exited (0)` para `dataset`, `server` e os
+cinco clientes. O frontend não acompanha essa execução externa; ele monitora
+somente os processos que inicia pelo botão.
 
-### 1.4 Executar em segundo plano
-
-Como alternativa ao comando de execução em primeiro plano:
+Para iniciar esse cenário em segundo plano e acompanhar seus próprios serviços:
 
 ```bash
-docker compose up --no-build -d
-docker compose logs -f
+docker compose up --no-build -d dataset server client-0 client-1 client-2 client-3 client-4
+docker compose logs -f server client-0 client-1 client-2 client-3 client-4
 ```
 
-Nesse modo, `Ctrl+C` encerra apenas o acompanhamento de logs. Para interromper
-uma execução em andamento e remover os contêineres e a rede:
+### 1.6 Testar e atualizar
+
+```bash
+docker compose --profile test run --rm tests
+docker compose --profile dashboard run --rm dashboard python -m unittest discover -s /app/dashboard/tests -v
+```
+
+O primeiro comando executa os 22 testes federados. O segundo executa os 12 testes
+Python do monitor. Ambos terminam e removem seus contêineres temporários.
+
+Depois de alterar código, testes ou dependências, reconstrua e atualize o painel:
+
+```bash
+docker build -t trabalho1:local .
+docker compose --profile dashboard up --no-build -d dashboard
+```
+
+Não há bind mount do código. O build copia os arquivos para a imagem. Recarregue
+o navegador com `Ctrl+Shift+R` se a aparência anterior permanecer em cache.
+Recriar o contêiner limpa o estado em memória do frontend; exporte antes se
+quiser guardar os dados da execução.
+
+Para remover os contêineres e a rede, preservando o cache do Iris:
 
 ```bash
 docker compose down
 ```
-
-Esse comando preserva o volume com o cache do Iris. Para uma nova execução,
-use novamente `docker compose up --no-build`.
-
-Depois de alterar código, testes ou dependências, reconstrua a imagem antes de
-executar. Não há montagem automática dos arquivos locais dentro dos contêineres.
 
 ## Capítulo 2 — Objetivo e origem do trabalho
 
@@ -166,6 +229,17 @@ framework Flower completo.
 ├── skills/
 │   ├── sd-criterios-aceitacao/SKILL.md
 │   └── sd-padrao-codigo/SKILL.md
+├── dashboard/
+│   ├── app.py
+│   ├── static/
+│   │   ├── index.html
+│   │   ├── app.js
+│   │   ├── style.css
+│   │   ├── whiteboard.js
+│   │   └── whiteboard.css
+│   └── tests/
+│       ├── test_monitor.py
+│       └── test_whiteboard.cjs
 └── codigo/
     ├── pyproject.toml
     ├── fl_sim_manual.py
@@ -196,6 +270,7 @@ framework Flower completo.
 | `Dockerfile` | Prepara a imagem Python e gera o código protobuf |
 | `compose.yaml` | Organiza os serviços, a rede, as dependências e o cache |
 | `requirements-docker.txt` | Fixa as versões das dependências principais do ambiente Docker |
+| `dashboard/` | Frontend, API de observação, supervisão dos participantes e testes do monitor |
 | `ANALISE.md` | Registra o diagnóstico inicial, anterior à implementação |
 | `AGENTS.md` e `skills/` | Registram as regras de implementação e os critérios de aceitação |
 
@@ -526,6 +601,7 @@ sem fixação por digest, portanto o ambiente não é integralmente imutável.
 | `client-0` a `client-4` | Aguardam o healthcheck do servidor e usam IDs distintos |
 | `tests` | Executa a suíte quando solicitado com o profile `test` |
 | `simulation` | Executa o programa sequencial com o profile `simulation` |
+| `dashboard` | Serve o frontend e inicia os participantes pelo botão, com o profile `dashboard` |
 
 O healthcheck confirma que o canal gRPC consegue se conectar. Ele não verifica
 acurácia nem conclusão das rodadas. Os clientes acessam `server:50051` pela rede
@@ -606,7 +682,8 @@ executado o cenário distribuído completo.
 
 As métricas são o resultado daquela execução, não uma garantia para qualquer
 versão de biblioteca ou configuração. O enunciado não define uma meta numérica.
-A ampliação deste README não modifica a implementação validada.
+A documentação descreve a implementação e distingue os testes unitários da
+execução real. O monitor acrescenta observação, sem modificar a lógica federada.
 
 ## Capítulo 13 — Execução sem Docker
 
@@ -717,137 +794,32 @@ início da implementação.
 
 ## Capítulo 16 — Painel visual do serviço
 
-### 16.1 Iniciar o frontend
+### 16.1 Visão geral e modos de operação
 
-Na raiz do projeto, com a branch `develop/trabalho1` atualizada:
+O frontend é uma interface local para iniciar e observar o treinamento real.
+O endereço padrão é **http://localhost:8088**. O capítulo 1 contém os comandos
+de inicialização e acompanhamento simultâneo pelo terminal.
 
-```bash
-docker build -t trabalho1:local .
-docker compose --profile dashboard up --no-build -d dashboard
-```
+| Modo | Onde estão os participantes | Como acompanhar |
+| --- | --- | --- |
+| Frontend | Seis processos Python independentes dentro do contêiner `dashboard` | Navegador e `docker compose logs -f dashboard` |
+| Compose distribuído | Um contêiner de servidor e cinco de clientes | `docker compose logs -f server client-0 client-1 client-2 client-3 client-4` |
 
-Abra **http://localhost:8088** no navegador e clique em **Iniciar execução**.
-Não é necessário iniciar separadamente os serviços `server` e `client-0` a
-`client-4` nesse modo. O monitor inicia os mesmos programas originais como seis
-processos Python independentes dentro do contêiner do painel, comunicando-se
-por gRPC em `127.0.0.1:50051`. A execução pelo Compose tradicional continua
-oferecendo um contêiner por participante.
+Nos dois modos, o servidor e os clientes executam os mesmos programas originais
+e se comunicam por gRPC. A diferença está na organização dos processos e na
+camada de observação. O monitor não acessa o socket Docker nem altera FedAvg.
 
-Use **Interromper** para encerrar uma execução em andamento. Depois do término,
-**Nova execução** inicia outro experimento e limpa os dados do anterior.
-**Exportar execução** baixa um JSON com métricas, eventos, logs e códigos de saída.
-Exporte antes de iniciar novamente se quiser guardar os resultados.
+No frontend, a porta gRPC `50051` é interna ao próprio contêiner e usa loopback.
+No Compose distribuído, os clientes usam `server:50051` na rede Docker.
 
-Para desligar somente o painel:
+### 16.2 Tema escuro e composição da interface
 
-```bash
-docker compose --profile dashboard stop dashboard
-```
+A tela usa tema escuro no fundo, nos painéis, na lousa e nas janelas de inspeção.
+O servidor aparece no centro como um monitor; os cinco clientes aparecem ao redor
+com o mesmo ícone `▤` utilizado na aba de métricas. As cores individuais permitem
+reconhecer o mesmo participante no diagrama e no console.
 
-Se a porta 8088 estiver ocupada, escolha outra porta no shell Linux/macOS:
-
-```bash
-DASHBOARD_PORT=8090 docker compose --profile dashboard up --no-build -d dashboard
-```
-
-Nesse exemplo, abra `http://localhost:8090`.
-
-### 16.2 O que é mostrado
-
-| Área | Informações |
-| --- | --- |
-| Controle do experimento | Iniciar, interromper, estado da execução e tempo decorrido |
-| Indicadores | Rodadas concluídas, última acurácia e perda globais |
-| Topologia | Servidor central, cinco clientes e última rodada aceita por cliente |
-| Ciclo da rodada | Explicação das etapas do aprendizado federado |
-| Gráficos | Acurácia e perda reais após cada consolidação |
-| Tabela de clientes | Última rodada aceita, acurácia e perda locais, código de saída |
-| Linha do tempo | Atualizações recebidas, consolidações e eventos de controle |
-| Console | Saída original dos processos, com filtro por serviço |
-
-Os valores ficam vazios até existirem resultados reais. As linhas animadas da
-rede representam a atividade geral durante a execução; não são uma captura de
-pacotes nem uma medição de tráfego. O painel não observa diretamente o instante
-exato de início do `fit`: apresenta os estados confirmados pelos logs, como
-atualização recebida ou aceita. Os números de amostras exibidos correspondem à
-configuração fixa de cinco clientes do kit.
-
-### 16.3 Como funciona a integração
-
-O frontend usa HTML, CSS e JavaScript sem bibliotecas externas, fontes remotas
-ou etapa de build. O backend HTTP usa a biblioteca padrão do Python e o runtime
-gRPC já instalado. Nenhuma nova dependência Python foi necessária.
-
-| Arquivo | Papel |
-| --- | --- |
-| `dashboard/app.py` | API, supervisão de processos, captura dos logs e estado em memória |
-| `dashboard/static/index.html` | Estrutura e conteúdo da interface |
-| `dashboard/static/style.css` | Layout responsivo, topologia e apresentação visual |
-| `dashboard/static/app.js` | Consulta periódica, gráficos SVG, filtros e exportação |
-| `dashboard/tests/test_monitor.py` | Testes de interpretação dos logs e API HTTP |
-
-O navegador consulta `GET /api/state` aproximadamente a cada 750 ms.
-`POST /api/start` inicia uma execução; outra solicitação durante uma execução
-ativa recebe HTTP 409. `POST /api/stop` solicita interrupção e encerra apenas os
-processos que pertencem ao monitor. O frontend e a API são servidos pela mesma
-origem, e POSTs com outra origem são recusados.
-
-A interpretação usa as mensagens existentes do cliente e do servidor. Não altera
-o contrato protobuf, as validações, a sincronização, a agregação ou os programas
-originais. O estado só é marcado como concluído após confirmar cinco rodadas com
-métricas e o encerramento dos seis processos com código zero.
-
-Para evitar processos órfãos em uma falha, o supervisor encerra os participantes
-que iniciou. Há limites operacionais no monitor: até 180 segundos para o servidor
-ficar disponível e cinco minutos para os participantes terminarem após o início
-dos clientes. Ao atingir um limite, o painel reporta erro e interrompe a execução;
-isso não é um timeout de rodada implementado no servidor original.
-
-### 16.4 Testes e limitações
-
-Executar os testes específicos do painel:
-
-```bash
-docker compose --profile dashboard run --rm dashboard python -m unittest discover -s /app/dashboard/tests -v
-```
-
-Os 11 testes Python verificam reconstrução de métricas e eventos, separação dos
-clientes, tratamento de logs sem métricas, isolamento de snapshots, interrupção
-sem execução, página e API, rejeição de outra origem e caminhos estáticos restritos. Também cobrem arquivos da lousa, ciclo de vida dos
-processos e sequência dos eventos estruturados.
-Os 22 testes do trabalho permanecem separados e são executados pelo profile `test`.
-
-Validação realizada: 11 testes do monitor aprovados, 22 testes federados
-aprovados e execução real iniciada pela API com cinco rodadas, 25 atualizações e
-seis códigos de saída zero. Também foram verificados início duplicado recusado,
-interrupção e reinício. A sintaxe e a renderização JavaScript foram verificadas
-com um DOM mínimo; não houve revisão visual em navegador real, pois nenhum
-navegador estava conectado ao ambiente.
-
-O painel guarda os dados somente em memória e conserva os últimos 1.500 logs e
-500 eventos. Reiniciar o contêiner apaga o histórico. Ele acompanha somente as
-execuções que ele próprio inicia; não se conecta aos logs de uma execução externa
-iniciada pelos demais serviços do Compose. Não é preciso fornecer acesso ao socket
-Docker ao painel.
-
-O serviço HTTP é publicado apenas na interface local e não possui login. Ele foi
-feito para demonstração local da atividade. A verificação visual em navegador
-real depende de um navegador disponível no ambiente de desenvolvimento.
-
-
-### 16.5 Lousa branca e logs por serviço
-
-A aba **Lousa ao vivo**, exibida inicialmente, acompanha a execução.
-A aba **Métricas e detalhes** oferece uma segunda perspectiva
-da mesma execução. Os controles de iniciar, interromper e exportar continuam
-compartilhados. Trocar de aba não inicia nem reinicia o treinamento.
-
-A lousa começa vazia. Um bloco aparece após o monitor iniciar o processo
-correspondente; a disponibilidade do gRPC é indicada separadamente. Os clientes
-recebem conexões visuais quando uma atualização recebida ou um aceite é observado.
-Isso evita apresentar relações não confirmadas como se fossem tráfego capturado.
-
-| Serviço | Cor de identificação |
+| Serviço | Cor |
 | --- | --- |
 | Servidor | Azul |
 | Cliente 0 | Roxo |
@@ -856,83 +828,265 @@ Isso evita apresentar relações não confirmadas como se fossem tráfego captur
 | Cliente 3 | Âmbar |
 | Cliente 4 | Rosa |
 
-As linhas contínuas na cor do cliente apontam para o servidor e representam uma
-atualização recebida. As linhas azuis tracejadas no sentido contrário representam
-a confirmação de aceite. Essas relações resumem os eventos observados; não são
-captura de pacotes nem instrumentação de todas as chamadas `GetGlobalModel`.
-As mesmas cores identificam os serviços nos logs laterais e no console do painel.
+A aba inicial é **Lousa ao vivo**. A aba **Métricas e detalhes** reúne indicadores,
+gráficos de acurácia e perda, tabela dos clientes, ciclo do aprendizado e eventos.
+Trocar de aba mantém a mesma execução. O tema não altera os valores das métricas.
 
-Arraste os blocos para reorganizar a lousa. As conexões acompanham a posição dos
-serviços. **Organizar lousa** restaura o arranjo inicial. Clique em um bloco, em
-uma cor da legenda ou no seletor para filtrar os logs. Ao selecionar um cliente,
-também aparecem as linhas do servidor que mencionam o recebimento daquele cliente,
-preservando o azul para identificar que foram emitidas pelo servidor.
-**Mostrar todos** remove a seleção. O filtro não interrompe a coleta de dados.
+### 16.3 Lousa e conexões
 
-A opção **Acompanhar** mantém o console nos registros mais recentes. Desmarque-a
-para ler logs anteriores sem que a posição de rolagem seja movida automaticamente.
+A lousa fica vazia até iniciar uma execução. Um bloco surge após o monitor iniciar
+o processo correspondente; iniciar um processo é diferente de confirmar que o
+servidor já está pronto para atender RPCs. O estado do servidor muda quando sua
+mensagem de disponibilidade é observada.
 
-Na faixa inferior, use a barra de eventos, as setas ou **Replay** para reconstruir
-a lousa passo a passo, inclusive retornando ao quadro vazio. Os blocos, conexões
-e logs respeitam o ponto selecionado. **Ao vivo** volta aos eventos mais recentes.
-O replay apenas visualiza dados já coletados: não reexecuta os processos nem
-altera sua velocidade. Uma nova execução limpa a sequência anterior.
+As conexões aparecem após recebimento ou aceite de uma atualização. Uma linha
+contínua na cor do cliente representa o envio confirmado ao servidor. A linha
+azul tracejada no sentido contrário representa o aceite. As conexões permanecem
+visíveis para ajudar a estudar a topologia e a rodada mais recente observada.
 
-O monitor acrescenta eventos estruturados de início e fim de processo,
-disponibilidade do servidor, recebimento, aceite e consolidação. Logs e eventos
-compartilham uma sequência monotônica para ordenar o replay. Como a captura de
-saída de processos distintos é concorrente, a visualização também trata o caso
-em que o aceite é lido antes da linha de recebimento, sem apagar a confirmação.
-Os eventos incluem somente informações observadas pelo supervisor e pelos logs;
-o código federado e o contrato gRPC continuam preservados.
+As setas não representam captura de pacotes nem instrumentação de todas as
+consultas `GetGlobalModel`. A interface também não mede o início exato de cada
+`fit`: mostra o que o supervisor e os logs realmente confirmam.
 
-A lógica da lousa está em `dashboard/static/whiteboard.js` e o estilo em
-`dashboard/static/whiteboard.css`. O teste `dashboard/tests/test_whiteboard.cjs`
-verifica quadro inicial vazio, surgimento de serviços, conexões confirmadas,
-cores, filtros, ordem concorrente, replay, escape de texto e alternância de abas.
-Pode ser executado com Node.js disponível no host:
+Arraste os serviços para mudar sua posição. As conexões acompanham os blocos.
+**Organizar lousa** restaura a disposição inicial. No celular ou em uma janela
+estreita, a região do diagrama permite rolagem horizontal para manter os serviços
+legíveis, e o console é apresentado abaixo dela.
+
+### 16.4 Logs no hover e console geral
+
+Ao passar o mouse sobre um serviço, aparece uma janela com:
+
+- nome e estado observado do processo;
+- PID e código de saída, quando disponível;
+- até sete logs recentes emitidos por aquele serviço.
+
+Os dados da janela se atualizam durante a execução. O foco pelo teclado também
+abre a inspeção. É possível rolar os registros, fechar pelo botão ou usar Escape.
+Ao sair do serviço e da janela, a inspeção fecha. A janela respeita o ponto do
+replay e não mostra registros futuros naquele modo.
+
+O **Console geral** é independente do hover. Ele combina os logs dos seis
+participantes e usa as cores dos serviços. Tem altura limitada e rolagem vertical
+própria: novos registros não aumentam indefinidamente a altura da página.
+
+Clique em um serviço ou em uma cor da legenda para filtrar o console. Ao
+selecionar um cliente, também aparecem mensagens do servidor que mencionam seu
+recebimento; a cor azul continua indicando a origem real daquela linha.
+**Mostrar todos** remove a seleção. O seletor do console oferece o mesmo filtro.
+O hover só abre a inspeção temporária e não muda esse filtro permanente.
+
+**Acompanhar** mantém a rolagem nos registros mais novos. Desmarque para ler
+mensagens anteriores sem deslocamento automático. Isso não pausa a coleta,
+o treinamento ou as atualizações dos gráficos.
+
+### 16.5 Replay e exportação
+
+A barra inferior permite selecionar um evento, avançar e voltar com as setas ou
+usar **Replay**. No início da sequência, a lousa volta a ficar vazia. Blocos,
+conexões e logs são reconstruídos até o evento selecionado. **Ao vivo** retorna
+aos dados mais recentes.
+
+O replay só reproduz os eventos observados; ele não executa novamente as RPCs,
+não retreina o modelo e não desacelera os processos em andamento. É possível
+examinar o histórico enquanto a execução continua coletando eventos.
+
+**Exportar execução** baixa `fedscope-execucao.json` com métricas, clientes,
+eventos, logs e códigos de saída. **Nova execução** limpa o histórico atual;
+exporte antes se precisar comparar resultados. O botão de exportação não contém
+uma função de reimportação ou armazenamento persistente.
+
+### 16.6 Backend, API e sequência dos eventos
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `dashboard/app.py` | Servidor HTTP, API, supervisor de processos, estado e logs |
+| `dashboard/static/index.html` | Estrutura da interface e abas |
+| `dashboard/static/style.css` | Tema e componentes gerais |
+| `dashboard/static/app.js` | Polling, controles, métricas e exportação |
+| `dashboard/static/whiteboard.js` | Reconstrução da lousa, conexões, hover, seleção, arraste e replay |
+| `dashboard/static/whiteboard.css` | Diagrama, console lateral, inspeção e layout responsivo |
+| `dashboard/tests/test_monitor.py` | Testes Python da API e do monitor |
+| `dashboard/tests/test_whiteboard.cjs` | Testes JavaScript com DOM mínimo |
+
+A interface usa HTML, CSS e JavaScript sem bibliotecas externas ou build de
+frontend. O monitor usa a biblioteca padrão Python e o runtime gRPC já disponível.
+Não foram adicionadas dependências Python para essa camada.
+
+| Endpoint | Comportamento |
+| --- | --- |
+| `GET /api/state` | Snapshot da execução, consultado aproximadamente a cada 750 ms |
+| `POST /api/start` | Inicia o experimento; responde 409 se já houver execução ativa |
+| `POST /api/stop` | Solicita interrupção dos processos iniciados pelo monitor |
+
+`Monitor.launch` inicia o programa original e registra `service_started`.
+Uma thread por processo lê a saída combinada de stdout e stderr.
+`Monitor.consume` espelha a linha no stdout do contêiner com prefixo do serviço,
+guarda a mensagem original para o frontend e reconhece métricas e eventos.
+`service_stopped` registra o código de saída observado.
+
+```text
+processo servidor/cliente
+          |
+          v
+    leitor de stdout/stderr
+          |
+          +--> stdout do dashboard --> logs do Docker --> terminal
+          |
+          +--> estado do monitor --> /api/state --> navegador
+```
+
+O prefixo `[server]` ou `[client-N]` é acrescentado apenas na saída do contêiner;
+a mensagem original permanece no JSON. Eventos de controle do monitor e início
+e fim de processos também são impressos. `flush=True` libera a saída sem aguardar
+um lote de mensagens. Threads podem intercalar os serviços, por isso a ordem de
+leitura é uma observação concorrente e não um rastreamento exato da rede.
+
+Eventos e logs recebem uma sequência monotônica compartilhada. O frontend usa
+essa sequência para cortar o histórico no replay. Caso o aceite seja lido antes
+da linha de recebimento de outro processo, a reconstrução não apaga o aceite.
+
+O estado só passa a concluído após confirmar cinco rodadas com métricas e os seis
+processos encerrados com código zero. A indisponibilidade informada por um cliente
+não é suficiente para declarar sucesso global.
+
+### 16.7 Ciclo de vida, portas e armazenamento
+
+A API é publicada apenas na interface local, sem login. POSTs vindos de outra
+origem são recusados. O uso previsto é a demonstração local da disciplina.
+
+O supervisor aguarda até 180 segundos pelo servidor e até cinco minutos pela
+conclusão após iniciar os clientes. Se houver erro ou interrupção, encerra os
+processos que ele iniciou. Esses limites pertencem ao monitor; não alteram as
+regras de rodada do servidor original.
+
+O estado é mantido em memória, com os últimos 1.500 logs e 500 eventos.
+Reiniciar ou recriar o contêiner apaga o histórico do navegador. O cache do dataset
+fica em volume Docker separado. O log textual do Docker é independente do estado
+em memória e segue a configuração de logging do daemon, sem limite adicional
+definido pelo projeto.
+
+O monitor acompanha somente suas próprias execuções. Ele não inspeciona os
+contêineres externos `server` e `client-N`. Não execute o modo tradicional
+esperando que sua atividade apareça automaticamente na lousa.
+
+Se a porta 8088 estiver ocupada, no Linux/macOS:
+
+```bash
+DASHBOARD_PORT=8090 docker compose --profile dashboard up --no-build -d dashboard
+```
+
+Abra `http://localhost:8090`. O processo HTTP continua na porta interna 8080;
+apenas a porta do host mudou.
+
+### 16.8 Testes e diagnóstico do frontend
+
+A execução de validação com o espelhamento de logs concluiu cinco rodadas,
+com todos os seis processos encerrando com código 0. O terminal Docker mostrou
+as métricas, as atualizações dos clientes e a mensagem final do monitor; a API
+manteve os mesmos resultados disponíveis no frontend. Os 12 testes do monitor
+passaram, incluindo a preservação da mensagem original no JSON e sua cópia
+identificada no stdout. O cenário terminou com loss 0,4877 e acurácia 0,9333.
+
+
+```bash
+docker compose --profile dashboard run --rm dashboard python -m unittest discover -s /app/dashboard/tests -v
+```
+
+Os 12 testes Python do monitor cobrem leitura de métricas, identificação de
+clientes, logs sem métricas, snapshots, interrupção sem execução, rotas HTTP,
+rejeição de origem externa, restrição de arquivos, ciclo de vida, sequência dos
+eventos e espelhamento de logs para o terminal. Os 22 testes federados são
+executados separadamente pelo profile `test`.
+
+Com Node.js disponível no host, os testes de frontend podem ser executados por:
 
 ```bash
 node dashboard/tests/test_whiteboard.cjs
 ```
 
-A suíte Python do monitor passou a conter 11 testes. Os 22 testes federados
-continuam separados. A revisão visual em navegador real ainda depende de um
-navegador conectado; os testes de JavaScript usam um DOM mínimo, sem validar a
-aparência final em tela.
+Eles verificam lousa vazia, surgimento dos serviços, cores, conexões, ordem
+concorrente, filtros, replay, escape de texto, inspeção no hover e troca de abas.
+Usam um DOM mínimo e não comprovam a aparência final ou as interações em navegador
+real. O ambiente usado não possui navegador conectado para essa revisão.
 
+| Sintoma | Diagnóstico |
+| --- | --- |
+| Apenas a mensagem de painel disponível no terminal | O contêiner iniciou, mas o experimento ainda não; clique em **Iniciar execução** |
+| Logs da interface não aparecem no terminal | Use `logs -f dashboard` no modo frontend e reconstrua a imagem se estiver usando versão antiga |
+| Logs antigos reaparecem no terminal | O Docker guarda as execuções do mesmo contêiner; use `--since=1m` ou `--tail=100` para reduzir a saída |
+| A página cresce com os logs | Confirme que está usando a versão atualizada com console de altura limitada; recarregue sem cache |
+| Serviços não aparecem imediatamente | O primeiro download e a inicialização podem demorar; acompanhe a API, o estado e o terminal |
+| `dashboard` continua ativo após cinco rodadas | Comportamento esperado: a interface fica disponível para resultados e nova execução |
+| Métricas locais diferem da global | São modelos e conjuntos de avaliação diferentes; consulte o capítulo 9 |
 
-A validação da lousa também usou uma execução real: seis inícios e seis términos
-de processo, 25 recebimentos e 25 aceites, cinco rodadas e códigos de saída zero.
-O replay foi reconstruído com esses dados reais, verificando que nenhuma conexão
-aparece antes dos serviços correspondentes. Após o teste, o painel foi reiniciado
-para ficar disponível sem uma execução ativa.
+## Capítulo 17 — Roteiro de estudo e apresentação
 
+### 17.1 Leitura sugerida
 
-### 16.6 Frontend com diagrama ilustrado e logs no hover
+| Ordem | Ler ou executar | O que entender |
+| --- | --- | --- |
+| 1 | Capítulos 2, 4 e 5 | Por que distribuir o treino e como uma rodada funciona |
+| 2 | `codigo/fl_sim_manual.py` | Treino local, FedAvg e avaliação sem rede |
+| 3 | Capítulo 6 e `federated.proto` | Mensagens, RPCs e o que realmente atravessa a rede |
+| 4 | Capítulo 7 e o cliente | Consulta, espera, treino, envio e confirmação |
+| 5 | Capítulo 8 e o servidor | Lock, buffer, validação, barreira e avanço da rodada |
+| 6 | Capítulo 9 e `common_fl.py` | Ponderação dos parâmetros e interpretação das métricas |
+| 7 | Capítulos 1 e 16, com o sistema rodando | Relacionar código, logs, topologia e resultados |
+| 8 | Capítulos 12 e 14 | Evidências de correção e limites do protótipo |
 
-O frontend foi redesenhado com fundo claro e composição inspirada na referência
-visual fornecida: um monitor representa o servidor central e cinco blocos
-ilustrados representam os clientes ao redor. A lousa é a visualização inicial.
-Os serviços ainda aparecem somente após seus eventos reais de início.
+### 17.2 Demonstração prática
 
-Ao passar o mouse sobre um serviço, uma janela flutuante mostra seu estado, PID,
-código de saída quando disponível e até sete registros recentes emitidos por
-esse processo. O conteúdo se atualiza durante a execução. Também é possível
-abrir essa inspeção ao focar o serviço pelo teclado. A janela permite rolar os
-logs, fechar pelo botão ou usar Escape. Ao sair do serviço e da janela, ela fecha.
-No replay, o hover respeita o ponto da sequência selecionado.
+1. Inicie `dashboard` pelo Docker e abra o acompanhamento dos logs no terminal.
+2. Abra o frontend: mostre a lousa vazia e explique que nenhum treino começou.
+3. Clique em **Iniciar execução** e observe o servidor surgindo antes dos clientes.
+4. Relacione uma mensagem `[server]` do terminal com a mensagem azul no console.
+5. Passe o mouse em um cliente e observe os logs exclusivos daquele processo.
+6. Identifique uma contribuição recebida e seu aceite; explique as duas setas.
+7. Mostre que a consolidação exige cinco clientes, evitando avanço prematuro.
+8. Abra **Métricas e detalhes** e acompanhe os gráficos após cada rodada.
+9. Ao concluir, confirme cinco rodadas e seis códigos de saída zero.
+10. Use o replay para rever o surgimento dos serviços e exporte o JSON.
 
-O **Console geral** fica em um painel separado, ao lado da lousa em telas maiores
-e abaixo dela em telas menores. Ele mantém os logs de todos os participantes,
-com cores correspondentes aos ícones e às conexões. O hover não muda o filtro
-permanente do console: o clique no serviço ou o seletor realiza essa filtragem.
-A aba de métricas, os gráficos, a tabela, os controles de execução, o replay e a
-exportação continuam disponíveis na mesma interface, com o novo visual claro.
+### 17.3 Perguntas para revisar
 
-Os ícones e a ilustração central são SVGs do próprio frontend, sem dependência de
-imagens externas. O redesign não modifica o backend, o algoritmo federado ou as
-regras originais. Os testes JavaScript incluem a abertura e o fechamento da
-inspeção, a separação de logs por origem e o respeito ao replay. A conferência
-visual e das interações em navegador real continua pendente quando não houver
-navegador conectado ao ambiente de desenvolvimento.
+**Por que transmitir o formato da matriz junto com os valores?** O protobuf envia
+os coeficientes como lista achatada; `coef_shape` permite reconstruir a matriz
+correta com `reshape`.
+
+**Por que a média do FedAvg é ponderada?** Clientes podem ter tamanhos distintos
+de treino. O peso `n_k / N` dá influência proporcional à quantidade de exemplos.
+
+**Qual a diferença entre rodada e época local?** Uma rodada distribui o modelo,
+recolhe atualizações e agrega. As épocas locais determinam quantos ajustes cada
+cliente executa antes de devolver sua contribuição naquela rodada.
+
+**Por que o cliente só registra uma rodada depois do aceite?** Enviar uma mensagem
+não garante que o servidor a aceitou. Marcar antes impediria o reprocessamento
+adequado em caso de recusa.
+
+**O que o lock protege?** Leitura do modelo e alterações do estado compartilhado,
+especialmente buffer, parâmetros e rodada. Os auxiliares não readquirem o mesmo
+lock não reentrante.
+
+**O que impede duas contribuições do mesmo cliente na rodada?** O servidor verifica
+se o `cid` já está em `received_updates` antes de armazenar a nova atualização.
+
+**Por que há polling?** O cliente consulta a rodada atual e espera se ela já foi
+concluída por ele; não há canal de push dedicado para anunciar a próxima rodada.
+
+**Por que o painel continua aberto depois do treinamento?** Ele é o supervisor
+HTTP. Os processos de treino terminam, mas o supervisor mantém a API e os
+resultados disponíveis para consulta e repetição.
+
+**As setas mostram cada pacote gRPC?** Não. Elas resumem recebimentos e aceites
+confirmados nos logs. O instante exato de cada consulta ou cálculo não é medido.
+
+**A aprovação dos testes prova um sistema de produção?** Não. Os testes unitários
+isolam componentes com mocks e a execução real valida o cenário didático.
+Autenticação, TLS, agregação segura e recuperação de clientes não fazem parte
+da arquitetura fornecida.
+
+**O frontend altera o resultado do aprendizado?** Ele inicia os programas
+originais e observa suas saídas. Não substitui o dataset, não modifica o FedAvg
+e não calcula métricas artificiais para preencher a tela.
