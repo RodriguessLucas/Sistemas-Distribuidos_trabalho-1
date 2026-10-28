@@ -81,8 +81,17 @@ Não há bind mount do código: após editar fontes ou testes, reconstrua a imag
 
 ## Validação
 
-Os 15 testes originais foram preservados. Cinco testes adicionais verificam a
+Verificado em 28/10/2026 na branch de desenvolvimento: build concluído, 22 testes
+aprovados e execução real com cinco clientes durante cinco rodadas. Servidor,
+cinco clientes e preparação do dataset encerraram com código 0. O modelo global
+terminou com loss 0,4877 e acurácia 0,9333 nessa execução; esses valores são
+observações, não requisitos de aceitação.
+
+Os 15 testes originais foram preservados. Sete testes adicionais verificam a
 espera por nova rodada, reprocessamento após recusa e tratamento dos erros gRPC.
+Também cobrem a consulta cancelada durante o desligamento, após a última
+atualização aceita: o cliente consulta novamente para obter o fim ou a
+indisponibilidade, sem ocultar cancelamentos em rodadas anteriores.
 A suíte utiliza mocks; verifique também os logs da execução real para confirmar
 as cinco consolidações e o encerramento dos seis processos.
 
